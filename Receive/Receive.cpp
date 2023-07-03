@@ -199,18 +199,15 @@ String Receive::processPacket(const char currentAddress)
         // 判断是否为请求响应
         if(fifthValue == REQUEST_RESPONSE)
         {
-            // 你的处理请求响应的代码
-            processRequestResponse(ReceiveData);
+            
         }
         // 判断是否为心跳响应
         if(fifthValue == HEARTBEAT_RESPONSE){
-            // 你的处理心跳响应的代码
-            processHeartbeatResponse(ReceiveData);
+            
         }
         // 判断是否为数据响应
         if(fifthValue == DATA_RESPONSE){
-            // 你的处理数据响应的代码
-            processDataResponse(ReceiveData);
+            
         }
         // 判断是否为主节点可服务响应
         if(fifthValue == MASTERJOIN_RESPONSE){
@@ -294,51 +291,72 @@ String Receive::processPacket(const char currentAddress)
         sender.sendResponseFrame(MasterNodeJoinResponseframe);
     }
 
+    // 四个节点都有可能收到数据帧
     String Receive::processDataFrame(const String &ReceiveData, const char destinationAddress, const char receiveAddress)
     {
+        char SecondChar[2]; // 创建一个只包含一个字符的字符串
+        SecondChar[0] = ReceiveData.charAt(1); // 将ReceiveData的第一个字符复制到firstChar
+        SecondChar[1] = '\0'; // 添加字符串结束标记
+        char* ReceiveAddress = SecondChar; // 将firstChar的地址赋给Sendaddress
+        char ThirdChar[2]; // 创建一个只包含一个字符的字符串
+        ThirdChar[0] = ReceiveData.charAt(2); // 将ReceiveData的第一个字符复制到firstChar
+        ThirdChar[1] = '\0'; // 添加字符串结束标记
+        char* DestinationAddress = ThirdChar; // 将firstChar的地址赋给Receiveaddress
         // 解包数据帧中的信息
         String unzipData = ReceiveData.substring(4, ReceiveData.length());
-        if (destinationAddress == 't' && receiveAddress == 's')
+        Serial.println("unzipData: " + unzipData);
+        // 先判断有几个中继节点在线
+        int count = 0;
+        for (int i = 1; i < 3; i++)
         {
-            // 该帧为主节点发送，中继节点转发的数据帧
-            Frame dataForwardFrame;
-            dataForwardFrame.initDataFrame("s", "t", "t", DATA_FRAME, unzipData);
-            sender.sendDataFrame(dataForwardFrame);
+            if (Topology[i])
+            {
+                count++;
+            }
         }
-        else if (destinationAddress == 't' && receiveAddress == 'b')
+        Serial.print("active Node is");
+        Serial.println(count);
+        // 判断目的地址是否为自己
+        if (destinationAddress == receiveAddress)
         {
-            // 该帧为主节点发送，中继节点转发的数据帧
-            Frame dataForwardFrame;
-            dataForwardFrame.initDataFrame("b", "t", "t", DATA_FRAME, unzipData);
-            sender.sendDataFrame(dataForwardFrame);
-        }
-        else if (destinationAddress == 't' && receiveAddress == 't')
-        {
-            // 该帧为中继节点发送，终端收到的数据帧
-            Serial.println("Receive data from MasterNode " + unzipData);
+            // 如果两个中继都在线
+            // if (count == 2)
+            // {
+            //     // 组帧
+            //     Frame DataResponseframe;
+            //     DataResponseframe.initResponseFrame(receiveAddress, "s", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            // }
+            // TODO
+
             return unzipData;
-        }
-        else if (destinationAddress == 'm' && receiveAddress == 's')
-        {
-            // 该帧为终端节点发送，中继节点转发的数据帧
-            Frame dataForwardFrame;
-            dataForwardFrame.initDataFrame("m", "s", "s", DATA_FRAME, unzipData);
-            sender.sendDataFrame(dataForwardFrame);
-        }
-        else if (destinationAddress == 'm' && receiveAddress == 'b')
-        {
-            // 该帧为终端节点发送，中继节点转发的数据帧
-            Frame dataForwardFrame;
-            dataForwardFrame.initDataFrame("t", "s", "s", DATA_FRAME, unzipData);
-            sender.sendDataFrame(dataForwardFrame);
-        }
-        else if (destinationAddress == 'm' && receiveAddress == 'm')
-        {
-            // 该帧为中继节点发送，主节点收到的数据帧
-            Serial.println("Receive data from Terminal " + unzipData);
-            return unzipData;
-        }
+        }else{ // 目的地址不是自己就转发
+            // 如果有兄弟中继节点在线
+            if (count == 2 && receiveAddress == 's')
+            {
+                Serial.println("condition 1");
+                // 组帧
+                Frame Dataframe;
+                Dataframe.initDataFrame(ReceiveAddress, "b", DestinationAddress, DATA_FRAME, unzipData);
+                sender.sendDataFrame(Dataframe);
+            }else if (receiveAddress == 'b')
+            {
+                Serial.println("condition 2");
+                // 组帧
+                Frame Dataframe;
+                Dataframe.initDataFrame(ReceiveAddress, "t", DestinationAddress, DATA_FRAME, unzipData);
+                sender.sendDataFrame(Dataframe);
+            }
+            else if (count == 1)
+            {
+                Serial.println("condition 3");
+                // 组帧
+                Frame Dataframe;
+                Dataframe.initDataFrame(ReceiveAddress, "t", DestinationAddress, DATA_FRAME, unzipData);
+                sender.sendDataFrame(Dataframe);
+            }
+
         return "";
+    }
     }
 
     void Receive::processRetransmissionFrame(const String &ReceiveData)
@@ -348,25 +366,23 @@ String Receive::processPacket(const char currentAddress)
 
     void Receive::processTopologyChangeFrame(const String &ReceiveData)
     {
-        // TODO
-    }
-
-    void Receive::TopologyNoSlave()
-    {
-        // TODO
-    }
-
-    void Receive::TopologyOneSlave()
-    {
-        // TODO
-    }
-
-    void Receive::TopologyTwoSlave()
-    {
-        // TODO
-    }
-
-    void Receive::TopologyNoTerminal()
-    {
-        // TODO
+        String TopologyString = ReceiveData.substring(4, ReceiveData.length());
+        // 更新拓扑
+        for(int i = 0; i < 4; i++)
+        {
+            if(TopologyString.charAt(i) == '1')
+            {
+                Topology[i] = true;
+            }
+            else{
+                Topology[i] = false;
+            }
+        }
+        // TODO 可靠通信
+        // 打印拓扑
+        Serial.println("Topology: ");
+        for(int i = 0; i < 4; i++)
+        {
+            Serial.print(Topology[i]);
+        }
     }

@@ -6,6 +6,7 @@
 #include <LoRa.h>
 #include <FrameStructure.h>
 using namespace std;
+extern bool Topology[4];
 
 class Send {
     public:

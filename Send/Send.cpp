@@ -117,14 +117,14 @@ void Send::sendTopologyChangeFrame(Frame &frame)
     LoRa.print(frame.receiverAddress);
     LoRa.print(frame.destinationAddress);
     LoRa.print(frame.frameType);
-    LoRa.print(frame.frameData.topologyData);
+    LoRa.print(frame.frameData.TopologyChangeData);
     LoRa.endPacket();
     Serial.print("SendTopologyChange:");
     Serial.print(frame.senderAddress);
     Serial.print(frame.receiverAddress);
     Serial.print(frame.destinationAddress);
     Serial.print(frame.frameType);
-    Serial.print(frame.frameData.topologyData);
+    Serial.print(frame.frameData.TopologyChangeData);
     Serial.println();
     Serial.println("***************************");
 }

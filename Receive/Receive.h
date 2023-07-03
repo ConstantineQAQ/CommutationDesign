@@ -22,12 +22,6 @@ class Receive {
         void processHeartbeatFrame(const String& ReceiveData);
         // 处理响应帧
         void processResponseFrame(const String& ReceiveData);
-        // 处理请求响应
-        void processRequestResponse(const String& ReceiveData);
-        // 处理心跳响应
-        void processHeartbeatResponse(const String& ReceiveData);
-        // 处理数据响应
-        void processDataResponse(const String& ReceiveData);
         //处理主节点可服务帧响应
         void processMasterNodeJoinResponse(const String& ReceiveData);
         // 处理主节点可服务帧
@@ -38,14 +32,6 @@ class Receive {
         void processRetransmissionFrame(const String& ReceiveData);
         // 处理拓扑变化帧
         void processTopologyChangeFrame(const String& ReceiveData);
-        // 处理没有从节点的拓扑变化帧
-        void TopologyNoSlave();
-        // 处理只有一个从节点的拓扑变化帧
-        void TopologyOneSlave();
-        // 处理有两个从节点的拓扑变化帧
-        void TopologyTwoSlave();
-        // 处理有三个从节点的拓扑变化帧
-        void TopologyNoTerminal();
 
 };
 

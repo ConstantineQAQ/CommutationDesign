@@ -32,12 +32,12 @@ void Frame::initResponseFrame(const char* sender, const char* receiver, const ch
 }
 
 // 初始化拓扑变化帧
-void Frame::initTopologyChangeFrame(const char* sender, const char* receiver, const char* destination, FrameType type, TopologyChangeFrameData data) {
+void Frame::initTopologyChangeFrame(const char* sender, const char* receiver, const char* destination, FrameType type, String& data) {
   strncpy(senderAddress, sender, sizeof(senderAddress));
   strncpy(receiverAddress, receiver, sizeof(receiverAddress));
   strncpy(destinationAddress, destination, sizeof(destinationAddress));
   frameType = type;
-  frameData.topologyData = data;
+  strncpy(frameData.dataFrameData, data.c_str(), sizeof(frameData.dataFrameData)); 
   dataLength = sizeof(*this);
 }
 

@@ -7,12 +7,15 @@
 using namespace std;
 String ReceivedData;
 String data;
+// 白名单
+char white[20] = {'s', 'b', 't'};
 // 创建一个Receive类的实例
 Receive receiver;
 // 创建一个Send类的实例
 Send sender;
 // 当前节点
 char currentNode = 't';
+extern bool Topology[4];
 
 void setup() 
 {
@@ -33,6 +36,7 @@ void loop()
     ReceivedData = receiver.processPacket(currentNode);
     if (ReceivedData != "")
     {
+        Serial.println(ReceivedData);
         // 从节点接收到请求
         if (ReceivedData == "move")
         {
@@ -65,24 +69,71 @@ void loop()
     }
 }
 
+void sendRequest(RequestFrameData requestType, const String &message)
+{
+    // 先判断有几个中继节点在线
+    int count = 0;
+    for (int i = 1; i < 3; i++)
+    {
+        if (Topology[i])
+        {
+            count++;
+        }
+    }
+    // 如果有中继节点在线
+    if (count)
+    {
+        // 两个节点都在线
+        if (count == 2)
+        {
+            Serial.println(message);
+            // 组帧
+            Frame RequestFrame;
+            RequestFrame.initRequestFrame("t", "s", "m", REQUEST_FRAME, requestType);
+            sender.sendRequestFrame(RequestFrame);
+        }
+        else if (count == 1)
+        {
+            // 判断哪一个中继节点在线
+            if (Topology[1])
+            {
+                Serial.println(message);
+                // 组帧
+                Frame RequestFrame;
+                RequestFrame.initRequestFrame("t", "s", "m", REQUEST_FRAME, requestType);
+                sender.sendRequestFrame(RequestFrame);
+            }
+            else if (Topology[2])
+            {
+                Serial.println(message);
+                // 组帧
+                Frame RequestFrame;
+                RequestFrame.initRequestFrame("t", "b", "m", REQUEST_FRAME, requestType);
+                sender.sendRequestFrame(RequestFrame);
+            }
+        }
+    }
+    // 如果没有一个中继节点在线，则直接发送数据响应给对应节点
+    else
+    {
+        Serial.println(message);
+        // 组帧
+        Frame RequestFrame;
+        RequestFrame.initRequestFrame("t", "m", "m", REQUEST_FRAME, requestType);
+        sender.sendRequestFrame(RequestFrame);
+    }
+}
+
 // 从节点上网请求函数
 void login()
 {
-    Serial.println("Terminal Login");
-        // 组帧
-    Frame LoginRequestFrame;
-    LoginRequestFrame.initRequestFrame("t", "s", "m", REQUEST_FRAME, NETWORK_JOIN_REQUEST);
-    sender.sendRequestFrame(LoginRequestFrame);
+    sendRequest(NETWORK_JOIN_REQUEST, "Terminal Login");
 }
 
 // 从节点下线请求函数
 void logout()
 {
-    Serial.println("Terminal Logout");
-    // 组帧
-    Frame LogoutRequestFrame;
-    LogoutRequestFrame.initRequestFrame("t", "s", "m", REQUEST_FRAME, NETWORK_LEAVE_REQUEST);
-    sender.sendRequestFrame(LogoutRequestFrame);
+    sendRequest(NETWORK_LEAVE_REQUEST, "Terminal Logout");
 }
 
 String getSerialData()

@@ -46,7 +46,7 @@ public:
   void initDataFrame(const char* sender, const char* receiver, const char* destination, FrameType type, String& data);
   void initRequestFrame(const char* sender, const char* receiver, const char* destination, FrameType type, RequestFrameData data);
   void initResponseFrame(const char* sender, const char* receiver, const char* destination, FrameType type, ResponseFrameData data);
-  void initTopologyChangeFrame(const char* sender, const char* receiver, const char* destination, FrameType type, TopologyChangeFrameData data);
+  void initTopologyChangeFrame(const char* sender, const char* receiver, const char* destination, FrameType type, String& data);
   void initHeartbeatFrame(const char* sender, const char* receiver, const char* destination, FrameType type);
   void initRetransmissionFrame(const char* sender, const char* receiver, const char* destination, FrameType type);
   void initMasterNodeFrame(const char* sender, const char* receiver, const char* destination, FrameType type);
