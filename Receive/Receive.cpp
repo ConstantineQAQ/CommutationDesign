@@ -1,6 +1,7 @@
 #include "Receive.h"
 
 const static char white[20] = {'s','b','t'};
+// 0:主节点 1:中继节点 2:中继节点 3:终端节点
 bool Topology[4] = {false,false,false,false};
 String ReceiveData;
 String SendData = "";
@@ -18,10 +19,9 @@ String Receive::processPacket(const char currentAddress)
             char destinationAddress = ReceiveData.charAt(2); // 获取目的地址
             char FrameType = ReceiveData.charAt(3); // 获取帧类型
             int FrameTypeInt = FrameType - '0';
-            // 判断是否为接受节点
+            // 判断当前节点是否为接受节点
             if (currentAddress == receiverAddress || receiverAddress == 'a')
             {
-            // 判断是否为请求帧
             switch(FrameTypeInt) 
             {
                 case REQUEST_FRAME:
@@ -115,31 +115,28 @@ String Receive::processPacket(const char currentAddress)
                 JoinResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
                 sender.sendResponseFrame(JoinResponseframe);
                 // 更新拓扑
-                for(int i = 0; i < 4; i++){
-                    if(Topology[i] == false){
-                        Topology[i] = Sendaddress;
-                        break;
-                    }
+                if(*Sendaddress == 's'){
+                    Topology[1] = true;
                 }
-                //写一个for循环读取拓扑里为true的个数
-                int count = 0;
+                else if(*Sendaddress == 'b'){
+                    Topology[2] = true;
+                }
+                else if(*Sendaddress == 't'){
+                    Topology[3] = true;
+                }
+                //写一个for循环读取拓扑数组，然后发送对应的四位二进制数
+                String TopologyString = "";
                 for(int i = 0; i < 4; i++){
-                    if(Topology[i] != false){
-                        count++;
+                    if(Topology[i] == true){
+                        TopologyString += "1";
+                    }
+                    else{
+                        TopologyString += "0";
                     }
                 }
                 // 组帧
                 Frame Topologyframe;
-                /*
-                count
-                enum TopologyChangeFrameData {
-                    NO_RELAY_AVAILABLE = 1,
-                    ONE_RELAY_AVAILABLE,
-                    TWO_RELAYS_AVAILABLE,
-                    NO_TERMINAL
-                };
-                */
-                Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,count);
+                Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,TopologyString);
                 sender.sendTopologyChangeFrame(Topologyframe);
             }
         }
@@ -157,39 +154,42 @@ String Receive::processPacket(const char currentAddress)
         LeaveResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
         sender.sendResponseFrame(LeaveResponseframe);
         // 更新拓扑
-        for(int i = 1; i < 4; i++){
-            if(Topology[i] == true){
-                Topology[i] = false;
-                break;
-            }
+        if(*Sendaddress == 's'){
+            Topology[1] = true;
+        }
+        else if(*Sendaddress == 'b'){
+            Topology[2] = true;
+        }
+        else if(*Sendaddress == 't'){
+            Topology[3] = true;
         }
         //写一个for循环读取拓扑里为true的个数
-        int count = 0;
-        for(int i = 0; i < 4; i++){
-            if(Topology[i] != false){
-                count++;
+        String TopologyString = "";
+        for(int i = 0; i < 4; i++)
+        {
+            if(Topology[i] == true)
+            {
+                TopologyString += "1";
+            }
+            else{
+                TopologyString += "0";
             }
         }
         // 组帧
         Frame Topologyframe;
-        /*
-        count
-        enum TopologyChangeFrameData {
-            NO_RELAY_AVAILABLE = 1,
-            ONE_RELAY_AVAILABLE,
-            TWO_RELAYS_AVAILABLE,
-            NO_TERMINAL
-        };
-        */
-        Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,count);
+        Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,TopologyString);
         sender.sendTopologyChangeFrame(Topologyframe);
     }
 
     void Receive::processHeartbeatFrame(const String& ReceiveData) {
-        // 你的处理心跳帧的代码
+        // 处理心跳帧的代码
         // 中继节点组帧
+        char firstChar[2]; // 创建一个只包含一个字符的字符串
+        firstChar[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
+        firstChar[1] = '\0'; // 添加字符串结束标记
+        char* Sendaddress = firstChar; // 将firstChar的地址赋给Sendaddress
         Frame HeartbeatResponseframe;
-        HeartbeatResponseframe.initResponseFrame("s","m","m",RESPONSE_FRAME,HEARTBEAT_RESPONSE);
+        HeartbeatResponseframe.initResponseFrame(Sendaddress,"m","m",RESPONSE_FRAME,HEARTBEAT_RESPONSE);
         sender.sendResponseFrame(HeartbeatResponseframe);
     }
 
@@ -219,6 +219,7 @@ String Receive::processPacket(const char currentAddress)
         }
     }
 
+    // 非主节点处理主节点发送的响应
     void Receive::processRequestResponse(const String &ReceiveData)
     {
         // TODO
@@ -253,31 +254,30 @@ String Receive::processPacket(const char currentAddress)
                 JoinResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
                 sender.sendResponseFrame(JoinResponseframe);
                 // 更新拓扑
-                for(int i = 0; i < 4; i++){
-                    if(Topology[i] == false){
-                        Topology[i] = Sendaddress;
-                        break;
-                    }
+                if(*Sendaddress == 's'){
+                    Topology[1] = true;
                 }
-                //写一个for循环读取拓扑里为true的个数
-                int count = 0;
-                for(int i = 0; i < 4; i++){
-                    if(Topology[i] != false){
-                        count++;
+                else if(*Sendaddress == 'b'){
+                    Topology[2] = true;
+                }
+                else if(*Sendaddress == 't'){
+                    Topology[3] = true;
+                }
+                // 拓扑变化帧的数据
+                String TopologyString = "";
+                for(int i = 0; i < 4; i++)
+                {
+                    if(Topology[i] == true)
+                    {
+                        TopologyString += "1";
+                    }
+                    else{
+                        TopologyString += "0";
                     }
                 }
                 // 组帧
                 Frame Topologyframe;
-                /*
-                count
-                enum TopologyChangeFrameData {
-                    NO_RELAY_AVAILABLE = 1,
-                    ONE_RELAY_AVAILABLE,
-                    TWO_RELAYS_AVAILABLE,
-                    NO_TERMINAL
-                };
-                */
-                Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,count);
+                Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,TopologyString);
                 sender.sendTopologyChangeFrame(Topologyframe);
             }
         }
@@ -285,8 +285,12 @@ String Receive::processPacket(const char currentAddress)
 
     // 对于中继节点来说，处理来自主节点的广播上网告知
     void Receive::processMasterNodeJoinRequest(const String& ReceiveData){
+        char firstChar[2]; // 创建一个只包含一个字符的字符串
+        firstChar[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
+        firstChar[1] = '\0'; // 添加字符串结束标记
+        char* Sendaddress = firstChar; // 将firstChar的地址赋给Sendaddress
         Frame MasterNodeJoinResponseframe;
-        MasterNodeJoinResponseframe.initResponseFrame("s","m","m",RESPONSE_FRAME,MASTERJOIN_RESPONSE);
+        MasterNodeJoinResponseframe.initResponseFrame(Sendaddress,"m","m",RESPONSE_FRAME,MASTERJOIN_RESPONSE);
         sender.sendResponseFrame(MasterNodeJoinResponseframe);
     }
 

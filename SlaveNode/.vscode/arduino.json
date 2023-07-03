@@ -1,6 +1,6 @@
 {
     "board": "arduino:avr:uno",
     "programmer": "avrispmkii",
-    "port": "/dev/tty.usbserial-110",
+    "port": "/dev/tty.usbmodem1401",
     "sketch": "SlaveNode.ino"
 }

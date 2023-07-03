@@ -29,14 +29,6 @@ enum ResponseFrameData {
   MASTERJOIN_RESPONSE
 };
 
-// 拓扑变化帧数据
-enum TopologyChangeFrameData {
-  NO_RELAY_AVAILABLE = 1,
-  ONE_RELAY_AVAILABLE,
-  TWO_RELAYS_AVAILABLE,
-  NO_TERMINAL
-};
-
 // 帧结构
 class Frame {
 public:
@@ -47,7 +39,7 @@ public:
     union {
       RequestFrameData requestData;
       ResponseFrameData responseData;
-      TopologyChangeFrameData topologyData;
+      char TopologyChangeData[100];
       char dataFrameData[100];  // 数据帧的数据
     } frameData;
     int dataLength;
