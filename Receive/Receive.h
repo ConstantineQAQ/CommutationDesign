@@ -32,7 +32,6 @@ class Receive {
         void processRetransmissionFrame(const String& ReceiveData);
         // 处理拓扑变化帧
         void processTopologyChangeFrame(const String& ReceiveData);
-
 };
 
 #endif

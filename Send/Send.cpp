@@ -128,3 +128,31 @@ void Send::sendTopologyChangeFrame(Frame &frame)
     Serial.println();
     Serial.println("***************************");
 }
+
+
+String Send::isRetransmission(const String &ReceiveData)
+{
+    // 判断帧类型是否为响应帧
+    if (ReceiveData[3] == '3')
+    {
+        // 判断响应类型
+        switch (ReceiveData[4])
+        {
+        case '1':
+            return "RequestResponse";
+            break;
+        case '2':
+            return "HeartbeatResponse";
+            break;
+        case '3':
+            return "DataResponse";
+            break;
+        case '4':
+            return "TopologyChangeResponse";
+            break; 
+        default:
+            return "Error";
+            break;
+        }
+    }
+}

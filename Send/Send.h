@@ -26,6 +26,8 @@ class Send {
         void sendRetransmissionFrame(Frame& frame);
         // 发送拓扑变化帧
         void sendTopologyChangeFrame(Frame& frame);
+        // 判断接受帧的类型
+        String isRetransmission(const String& ReceiveData);
 };
 
 #endif
