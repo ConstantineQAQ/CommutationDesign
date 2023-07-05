@@ -1,6 +1,6 @@
 #include "Receive.h"
 
-const static char white[20] = {'s','b','t'};
+const char* white[20] = {"s", "b", "t"};
 // 0:主节点 1:中继节点 2:中继节点 3:终端节点
 bool Topology[4] = {false,false,false,false};
 String ReceiveData;
@@ -82,6 +82,81 @@ String Receive::processPacket(const char currentAddress)
     return SendData;
 }
 
+bool Receive::receiveACK(const char currentAddress)
+{
+    int packetSize = LoRa.parsePacket();
+    if(packetSize){
+        while(LoRa.available())
+        {
+            String ReceiveData = LoRa.readString();
+            char senderAddress = ReceiveData.charAt(0); // 获取发送地址
+            char receiverAddress = ReceiveData.charAt(1); // 获取接收地址
+            char destinationAddress = ReceiveData.charAt(2); // 获取目的地址
+            char FrameType = ReceiveData.charAt(3); // 获取帧类型
+            int FrameTypeInt = FrameType - '0';
+            char SecondChar[2]; // 创建一个只包含一个字符的字符串
+            SecondChar[0] = ReceiveData.charAt(1); // 将ReceiveData的第一个字符复制到firstChar
+            SecondChar[1] = '\0'; // 添加字符串结束标记
+            char* ReceiveAddress = SecondChar; // 将firstChar的地址赋给Sendaddress
+            char ThirdChar[2]; // 创建一个只包含一个字符的字符串
+            ThirdChar[0] = ReceiveData.charAt(2); // 将ReceiveData的第一个字符复制到firstChar
+            ThirdChar[1] = '\0'; // 添加字符串结束标记
+            char* DestinationAddress = ThirdChar; // 将ThirdChar的地址赋给DestinationAddress
+            // 判断当前节点是否为接受节点
+            if (currentAddress == receiverAddress)
+            {
+                // 再判断是否为目的节点
+                if (receiverAddress == destinationAddress)
+                {
+                    return true;
+                }
+                else if(FrameTypeInt == RESPONSE_FRAME && receiverAddress != destinationAddress)
+                {
+                    // 转发ACK
+                    // 先判断有几个中继节点在线
+                    int count = 0;
+                    for (int i = 1; i < 3; i++)
+                    {
+                        if (Topology[i])
+                        {
+                            count++;
+                        }
+                    }
+                    // 如果有兄弟中继节点在线
+                    if (count == 2 && receiverAddress == 's')
+                    {
+                        // 转发ACK
+                        Frame ACKframe;
+                        ACKframe.initResponseFrame(ReceiveAddress, "b", DestinationAddress, RESPONSE_FRAME, DATA_RESPONSE);
+                        sender->sendFrame(ACKframe);
+                        Serial.println("ReceiveACK");
+                        Serial.println("***************************");
+                    }
+                    else if (receiverAddress == 'b')
+                    {
+                        // 转发ACK
+                        Frame ACKframe;
+                        ACKframe.initResponseFrame(ReceiveAddress, DestinationAddress, DestinationAddress, RESPONSE_FRAME, DATA_RESPONSE);
+                        sender->sendFrame(ACKframe);
+                        Serial.println("ReceiveACK");
+                        Serial.println("***************************");
+                    }
+                    else if(count == 1)
+                    {
+                        // 转发ACK
+                        Frame ACKframe;
+                        ACKframe.initResponseFrame(ReceiveAddress, DestinationAddress, DestinationAddress, RESPONSE_FRAME, DATA_RESPONSE);
+                        sender->sendFrame(ACKframe);
+                        Serial.println("ReceiveACK");
+                        Serial.println("***************************");
+                    }
+                }
+            }
+        }
+        return false;
+    }
+}
+
     void Receive::processRequestFrame(const String& ReceiveData) {
         char fifthChar = ReceiveData.charAt(4); // 获取数据
         int fifthValue = fifthChar - '0'; // 将字符转换为整数
@@ -113,7 +188,7 @@ String Receive::processPacket(const char currentAddress)
                 // 主节点响应该入网节点
                 Frame JoinResponseframe;
                 JoinResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
-                sender.sendResponseFrame(JoinResponseframe);
+                sender->sendNeedACK(JoinResponseframe,1000,3,"m");
                 // 更新拓扑
                 if(*Sendaddress == 's'){
                     Topology[1] = true;
@@ -136,8 +211,14 @@ String Receive::processPacket(const char currentAddress)
                 }
                 // 组帧
                 Frame Topologyframe;
-                Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,TopologyString);
-                sender.sendTopologyChangeFrame(Topologyframe);
+                for (int i = 1; i < 4; i++)
+                {
+                    if (Topology[i] == true)
+                    {
+                        Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
+                        sender->sendNeedACK(Topologyframe, 3, 1000, "m");
+                    }
+                }
             }
         }
     }
@@ -152,7 +233,7 @@ String Receive::processPacket(const char currentAddress)
         // 主节点响应该退网节点
         Frame LeaveResponseframe;
         LeaveResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
-        sender.sendResponseFrame(LeaveResponseframe);
+        sender->sendResponseFrame(LeaveResponseframe);
         // 更新拓扑
         if(*Sendaddress == 's'){
             Topology[1] = true;
@@ -178,7 +259,7 @@ String Receive::processPacket(const char currentAddress)
         // 组帧
         Frame Topologyframe;
         Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,TopologyString);
-        sender.sendTopologyChangeFrame(Topologyframe);
+        sender->sendTopologyChangeFrame(Topologyframe);
     }
 
     void Receive::processHeartbeatFrame(const String& ReceiveData) {
@@ -190,25 +271,25 @@ String Receive::processPacket(const char currentAddress)
         char* Sendaddress = firstChar; // 将firstChar的地址赋给Sendaddress
         Frame HeartbeatResponseframe;
         HeartbeatResponseframe.initResponseFrame(Sendaddress,"m","m",RESPONSE_FRAME,HEARTBEAT_RESPONSE);
-        sender.sendResponseFrame(HeartbeatResponseframe);
+        sender->sendResponseFrame(HeartbeatResponseframe);
     }
 
     void Receive::processResponseFrame(const String& ReceiveData) {
         char fifthChar = ReceiveData.charAt(4); // 获取第五个字符
         int fifthValue = fifthChar - '0'; // 将字符转换为整数
-        // 判断是否为请求响应
-        if(fifthValue == REQUEST_RESPONSE)
-        {
+        // // 判断是否为请求响应
+        // if(fifthValue == REQUEST_RESPONSE)
+        // {
             
-        }
-        // 判断是否为心跳响应
-        if(fifthValue == HEARTBEAT_RESPONSE){
+        // }
+        // // 判断是否为心跳响应
+        // if(fifthValue == HEARTBEAT_RESPONSE){
             
-        }
-        // 判断是否为数据响应
-        if(fifthValue == DATA_RESPONSE){
+        // }
+        // // 判断是否为数据响应
+        // if(fifthValue == DATA_RESPONSE){
             
-        }
+        // }
         // 判断是否为主节点可服务响应
         if(fifthValue == MASTERJOIN_RESPONSE){
             // 你的处理主节点可服务响应的代码
@@ -249,15 +330,18 @@ String Receive::processPacket(const char currentAddress)
                 // 主节点响应该入网节点
                 Frame JoinResponseframe;
                 JoinResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
-                sender.sendResponseFrame(JoinResponseframe);
+                sender->sendFrame(JoinResponseframe);
                 // 更新拓扑
-                if(*Sendaddress == 's'){
+                if(*Sendaddress == 's')
+                {
                     Topology[1] = true;
                 }
-                else if(*Sendaddress == 'b'){
+                else if(*Sendaddress == 'b')
+                {
                     Topology[2] = true;
                 }
-                else if(*Sendaddress == 't'){
+                else if(*Sendaddress == 't')
+                {
                     Topology[3] = true;
                 }
                 // 拓扑变化帧的数据
@@ -275,7 +359,7 @@ String Receive::processPacket(const char currentAddress)
                 // 组帧
                 Frame Topologyframe;
                 Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,TopologyString);
-                sender.sendTopologyChangeFrame(Topologyframe);
+                sender->sendFrame(Topologyframe);
             }
         }
     }
@@ -286,9 +370,13 @@ String Receive::processPacket(const char currentAddress)
         firstChar[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
         firstChar[1] = '\0'; // 添加字符串结束标记
         char* Sendaddress = firstChar; // 将firstChar的地址赋给Sendaddress
+        char secondChar[2]; // 创建一个只包含一个字符的字符串
+        secondChar[0] = ReceiveData.charAt(2); // 将ReceiveData的第一个字符复制到firstChar
+        secondChar[1] = '\0'; // 添加字符串结束标记
+        char* DestnationAddress = secondChar; // 将firstChar的地址赋给DestnationAddress
         Frame MasterNodeJoinResponseframe;
-        MasterNodeJoinResponseframe.initResponseFrame(Sendaddress,"m","m",RESPONSE_FRAME,MASTERJOIN_RESPONSE);
-        sender.sendResponseFrame(MasterNodeJoinResponseframe);
+        MasterNodeJoinResponseframe.initResponseFrame(DestnationAddress,"m","m",RESPONSE_FRAME,MASTERJOIN_RESPONSE);
+        sender->sendFrame(MasterNodeJoinResponseframe);
     }
 
     // 四个节点都有可能收到数据帧
@@ -337,14 +425,14 @@ String Receive::processPacket(const char currentAddress)
                 // 组帧
                 Frame Dataframe;
                 Dataframe.initDataFrame(ReceiveAddress, "b", DestinationAddress, DATA_FRAME, unzipData);
-                sender.sendDataFrame(Dataframe);
+                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress);
             }else if (receiveAddress == 'b')
             {
                 Serial.println("condition 2");
                 // 组帧
                 Frame Dataframe;
                 Dataframe.initDataFrame(ReceiveAddress, "t", DestinationAddress, DATA_FRAME, unzipData);
-                sender.sendDataFrame(Dataframe);
+                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress);
             }
             else if (count == 1)
             {
@@ -352,9 +440,8 @@ String Receive::processPacket(const char currentAddress)
                 // 组帧
                 Frame Dataframe;
                 Dataframe.initDataFrame(ReceiveAddress, "t", DestinationAddress, DATA_FRAME, unzipData);
-                sender.sendDataFrame(Dataframe);
+                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress);
             }
-
         return "";
     }
     }
@@ -379,6 +466,9 @@ String Receive::processPacket(const char currentAddress)
             }
         }
         // TODO 可靠通信
+        // 组帧
+        // Frame TopologyResponseframe;
+        // TopologyResponseframe.initResponseFrame("m","","a",RESPONSE_FRAME,TOPOLOGY_RESPONSE);
         // 打印拓扑
         Serial.println("Topology: ");
         for(int i = 0; i < 4; i++)

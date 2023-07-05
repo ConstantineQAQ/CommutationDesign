@@ -5,6 +5,8 @@
 #include <Send.h>
 
 using namespace std;
+// 增加频段宏定义
+#define Frency 410E6
 
 // 白名单设置
 /**
@@ -12,7 +14,7 @@ using namespace std;
  * b:中继节点二号
  * t:终端节点
 */
-char white[20] = {'s', 'b', 't'};
+extern const char* white[20];
 extern bool Topology[4];
 String data;
 char currentNode = 'm';
@@ -27,7 +29,8 @@ void setup() {
     Serial.begin(9600);
     while (!Serial);
     Serial.println("LoRa MasterNode");
-    if (!LoRa.begin(410E6)) {
+    if (!LoRa.begin(410E6)) 
+    {
         Serial.println("Starting LoRa failed!");
         while (1);
     }
@@ -67,7 +70,7 @@ void loop(){
                 // 组帧发送数据帧
                 Frame DataFrame;
                 DataFrame.initDataFrame("m", "s", "t", DATA_FRAME, data);
-                sender.sendDataFrame(DataFrame);
+                sender.sendNeedACK(DataFrame, 3, 1000, currentNode);
             }
             else if (count == 1)
             {
@@ -80,14 +83,14 @@ void loop(){
                     Frame DataFrame;
                     Serial.println(white[0]);
                     DataFrame.initDataFrame("m", "s", "t", DATA_FRAME, data);
-                    sender.sendDataFrame(DataFrame);
+                    sender.sendNeedACK(DataFrame, 3, 1000, currentNode);
                 }
                 else if (Topology[2])
                 {
                     // 组帧发送数据帧
                     Frame DataFrame;
                     DataFrame.initDataFrame("m", "b", "t", DATA_FRAME, data);
-                    sender.sendDataFrame(DataFrame);
+                    sender.sendNeedACK(DataFrame, 3, 1000, currentNode);
                 }
             }
         }
@@ -97,7 +100,7 @@ void loop(){
             // 组帧发送数据帧
             Frame DataFrame;
             DataFrame.initDataFrame("m", "t", "t", DATA_FRAME, data);
-            sender.sendDataFrame(DataFrame);
+            sender.sendNeedACK(DataFrame, 3, 1000, currentNode);
         }    
     }
 }
@@ -111,7 +114,7 @@ void initMasterNode()
     //组帧
     // test
     MasterOnlineframe.initMasterNodeFrame("m","a","a",MASTER_NODE_FRAME);
-    sender.sendMasterNodeLoginFrame(MasterOnlineframe);
+    sender.sendNeedACK(MasterOnlineframe, 3, 1000, currentNode);
 }
 
 String getData()

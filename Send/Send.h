@@ -5,11 +5,17 @@
 #include <SPI.h>
 #include <LoRa.h>
 #include <FrameStructure.h>
+#include <Receive.h>
+
 using namespace std;
 extern bool Topology[4];
+extern const char* white[20];
+class Receive;// 前置声明
 
 class Send {
     public:
+        // 判断收否有接受信息,初始化Receive
+        Receive* receive;  // 使用指针而不是对象
         // 从串口中读取的数据
         String val;
         // 发送数据帧
@@ -26,8 +32,10 @@ class Send {
         void sendRetransmissionFrame(Frame& frame);
         // 发送拓扑变化帧
         void sendTopologyChangeFrame(Frame& frame);
-        // 判断接受帧的类型
-        String isRetransmission(const String& ReceiveData);
+        // 发送需要ACk的帧
+        void sendNeedACK(Frame& frame, int retryTimes, int timeout, const char currentAddress);
+        // 发送帧
+        void sendFrame(Frame& frame);
 };
 
 #endif

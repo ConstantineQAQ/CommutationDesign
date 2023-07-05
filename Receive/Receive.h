@@ -6,12 +6,14 @@
 #include <LoRa.h>
 #include <FrameStructure.h>
 #include <Send.h>
+class Send;// 前置声明
 
 class Receive {
     public:
         String processPacket(const char currentAddress);
+        bool receiveACK(const char currentAddress);
     private:
-        Send sender;
+        Send* sender;
         // 处理请求帧
         void processRequestFrame(const String& ReceiveData);
         // 处理入网请求
