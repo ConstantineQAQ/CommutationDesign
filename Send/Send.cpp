@@ -1,5 +1,6 @@
 #include "Send.h"
 
+
 void Send::sendDataFrame(Frame &frame)
 {
     LoRa.beginPacket();
@@ -73,7 +74,6 @@ void Send::sendResponseFrame(Frame &frame)
     Serial.print(frame.frameType);
     Serial.print(frame.frameData.responseData);
     Serial.println();
-    Serial.println("***************************");
 }
 
 void Send::sendMasterNodeLoginFrame(Frame &frame)

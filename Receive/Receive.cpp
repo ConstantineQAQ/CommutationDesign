@@ -5,6 +5,7 @@ const char* white[20] = {"s", "b", "t"};
 bool Topology[4] = {false,false,false,false};
 String ReceiveData;
 String SendData = "";
+Send* sender = new Send();
 
 String Receive::processPacket(const char currentAddress)
 {
@@ -103,11 +104,15 @@ bool Receive::receiveACK(const char currentAddress)
             ThirdChar[1] = '\0'; // 添加字符串结束标记
             char* DestinationAddress = ThirdChar; // 将ThirdChar的地址赋给DestinationAddress
             // 判断当前节点是否为接受节点
+            Serial.println(currentAddress);
+            Serial.println(receiverAddress);
             if (currentAddress == receiverAddress)
             {
+                Serial.println("yes");
                 // 再判断是否为目的节点
                 if (receiverAddress == destinationAddress)
                 {
+                    Serial.println("yes 1");
                     return true;
                 }
                 else if(FrameTypeInt == RESPONSE_FRAME && receiverAddress != destinationAddress)
@@ -163,40 +168,39 @@ bool Receive::receiveACK(const char currentAddress)
         // 判断是否为入网请求
         if(fifthValue == NETWORK_JOIN_REQUEST)
         {
-            Serial.println("ReceiveNetworkJoinRequest");
+            Serial.print("ReceiveJoin");
             processNetworkJoinRequest(ReceiveData);
         }
         // 判断是否为退网请求
         if(fifthValue == NETWORK_LEAVE_REQUEST){
-            Serial.println("ReceiveNetworkLeaveRequest");
+            Serial.print("ReceiveNetworkLeaveRequest");
             processNetworkLeaveRequest(ReceiveData);
         }
     }
 
     void Receive::processNetworkJoinRequest(const String& ReceiveData) {
+        Serial.print(ReceiveData);
         // 你的处理入网请求的代码
         // 判断是否在白名单内
         char firstChar[2]; // 创建一个只包含一个字符的字符串
         firstChar[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
         firstChar[1] = '\0'; // 添加字符串结束标记
         char* Sendaddress = firstChar; // 将firstChar的地址赋给Sendaddress
-        Serial.println(String(Sendaddress) + " node is requesting to join the network");
         for(int i = 0; i < 3; i++)
         {
-            if(*Sendaddress == white[i]){
-                Serial.println(String(Sendaddress) + " node is online");
+            if (strcmp(Sendaddress, white[i]) == 0) {
                 // 主节点响应该入网节点
                 Frame JoinResponseframe;
                 JoinResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
-                sender->sendNeedACK(JoinResponseframe,1000,3,"m");
+                sender->sendFrame(JoinResponseframe);
                 // 更新拓扑
-                if(*Sendaddress == 's'){
+                if(strcmp(Sendaddress, "s") == 0){
                     Topology[1] = true;
                 }
-                else if(*Sendaddress == 'b'){
+                else if(strcmp(Sendaddress, "b") == 0){
                     Topology[2] = true;
                 }
-                else if(*Sendaddress == 't'){
+                else if(strcmp(Sendaddress, "t") == 0){
                     Topology[3] = true;
                 }
                 //写一个for循环读取拓扑数组，然后发送对应的四位二进制数
@@ -215,8 +219,8 @@ bool Receive::receiveACK(const char currentAddress)
                 {
                     if (Topology[i] == true)
                     {
-                        Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
-                        sender->sendNeedACK(Topologyframe, 3, 1000, "m");
+                        Topologyframe.initTopologyChangeFrame("m", "s", "s", TOPOLOGY_CHANGE_FRAME, TopologyString);
+                        sender->sendNeedACK(Topologyframe, 3, 1000, 'm');
                     }
                 }
             }
@@ -453,6 +457,10 @@ bool Receive::receiveACK(const char currentAddress)
 
     void Receive::processTopologyChangeFrame(const String &ReceiveData)
     {
+        char firstChar[2]; // 创建一个只包含一个字符的字符串
+        firstChar[0] = ReceiveData.charAt(1); // 将ReceiveData的第一个字符复制到firstChar
+        firstChar[1] = '\0'; // 添加字符串结束标记
+        char* Sendaddress = firstChar; // 将firstChar的地址赋给Sendaddress
         String TopologyString = ReceiveData.substring(4, ReceiveData.length());
         // 更新拓扑
         for(int i = 0; i < 4; i++)
@@ -467,8 +475,9 @@ bool Receive::receiveACK(const char currentAddress)
         }
         // TODO 可靠通信
         // 组帧
-        // Frame TopologyResponseframe;
-        // TopologyResponseframe.initResponseFrame("m","","a",RESPONSE_FRAME,TOPOLOGY_RESPONSE);
+        Frame TopologyResponseframe;
+        TopologyResponseframe.initResponseFrame(Sendaddress,"m","m",RESPONSE_FRAME, DATA_RESPONSE);
+        sender->sendFrame(TopologyResponseframe);
         // 打印拓扑
         Serial.println("Topology: ");
         for(int i = 0; i < 4; i++)

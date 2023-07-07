@@ -22,7 +22,7 @@ char currentNode = 'm';
 // 创建一个Receive类的实例
 Receive receiver;
 // 创建一个Send类的实例
-Send sender;
+extern Send* sender;
 
 void setup() {
     LoRa.setPins(A3);
@@ -70,7 +70,7 @@ void loop(){
                 // 组帧发送数据帧
                 Frame DataFrame;
                 DataFrame.initDataFrame("m", "s", "t", DATA_FRAME, data);
-                sender.sendNeedACK(DataFrame, 3, 1000, currentNode);
+                sender->sendNeedACK(DataFrame, 3, 1000, currentNode);
             }
             else if (count == 1)
             {
@@ -83,14 +83,14 @@ void loop(){
                     Frame DataFrame;
                     Serial.println(white[0]);
                     DataFrame.initDataFrame("m", "s", "t", DATA_FRAME, data);
-                    sender.sendNeedACK(DataFrame, 3, 1000, currentNode);
+                    sender->sendNeedACK(DataFrame, 3, 1000, currentNode);
                 }
                 else if (Topology[2])
                 {
                     // 组帧发送数据帧
                     Frame DataFrame;
                     DataFrame.initDataFrame("m", "b", "t", DATA_FRAME, data);
-                    sender.sendNeedACK(DataFrame, 3, 1000, currentNode);
+                    sender->sendNeedACK(DataFrame, 3, 1000, currentNode);
                 }
             }
         }
@@ -100,7 +100,7 @@ void loop(){
             // 组帧发送数据帧
             Frame DataFrame;
             DataFrame.initDataFrame("m", "t", "t", DATA_FRAME, data);
-            sender.sendNeedACK(DataFrame, 3, 1000, currentNode);
+            sender->sendNeedACK(DataFrame, 3, 1000, currentNode);
         }    
     }
 }
@@ -114,7 +114,7 @@ void initMasterNode()
     //组帧
     // test
     MasterOnlineframe.initMasterNodeFrame("m","a","a",MASTER_NODE_FRAME);
-    sender.sendNeedACK(MasterOnlineframe, 3, 1000, currentNode);
+    sender->sendNeedACK(MasterOnlineframe, 3, 1000, currentNode);
 }
 
 String getData()

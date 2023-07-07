@@ -8,11 +8,11 @@ using namespace std;
 String ReceivedData;
 String data;
 // 白名单
-char white[20] = {'s', 'b', 't'};
+extern const char* white[20];
 // 创建一个Receive类的实例
 Receive receiver;
 // 创建一个Send类的实例
-Send sender;
+extern Send* sender;
 // 当前节点
 char currentNode = 't';
 extern bool Topology[4];
@@ -48,7 +48,7 @@ void loop()
             // 组帧
             Frame RequestResponseFrame;
             RequestResponseFrame.initResponseFrame("t", "s", "m", RESPONSE_FRAME, DATA_RESPONSE);
-            sender.sendResponseFrame(RequestResponseFrame);
+            sender->sendResponseFrame(RequestResponseFrame);
             ReceivedData = ""; // 清空接收到的数据
         }
     }
@@ -90,7 +90,7 @@ void sendRequest(RequestFrameData requestType, const String &message)
             // 组帧
             Frame RequestFrame;
             RequestFrame.initRequestFrame("t", "s", "m", REQUEST_FRAME, requestType);
-            sender.sendRequestFrame(RequestFrame);
+            sender->sendNeedACK(RequestFrame, 3, 2000, currentNode);
         }
         else if (count == 1)
         {
@@ -101,7 +101,7 @@ void sendRequest(RequestFrameData requestType, const String &message)
                 // 组帧
                 Frame RequestFrame;
                 RequestFrame.initRequestFrame("t", "s", "m", REQUEST_FRAME, requestType);
-                sender.sendRequestFrame(RequestFrame);
+                sender->sendNeedACK(RequestFrame, 3, 2000, currentNode);
             }
             else if (Topology[2])
             {
@@ -109,7 +109,7 @@ void sendRequest(RequestFrameData requestType, const String &message)
                 // 组帧
                 Frame RequestFrame;
                 RequestFrame.initRequestFrame("t", "b", "m", REQUEST_FRAME, requestType);
-                sender.sendRequestFrame(RequestFrame);
+                sender->sendNeedACK(RequestFrame, 3, 2000, currentNode);
             }
         }
     }
@@ -120,7 +120,7 @@ void sendRequest(RequestFrameData requestType, const String &message)
         // 组帧
         Frame RequestFrame;
         RequestFrame.initRequestFrame("t", "m", "m", REQUEST_FRAME, requestType);
-        sender.sendRequestFrame(RequestFrame);
+        sender->sendNeedACK(RequestFrame, 3, 2000, currentNode);
     }
 }
 

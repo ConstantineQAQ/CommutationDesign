@@ -9,7 +9,7 @@ String data;
 // 创建一个Receive类的实例
 Receive receiver;
 // 创建一个Send类的实例
-Send sender;
+extern Send* sender;
 // 当前节点
 char currentNode = 's';
 
@@ -49,7 +49,7 @@ void login()
         // 组帧
     Frame LoginRequestFrame;
     LoginRequestFrame.initRequestFrame("s", "m", "m", REQUEST_FRAME, NETWORK_JOIN_REQUEST);
-    sender.sendRequestFrame(LoginRequestFrame);
+    sender->sendNeedACK(LoginRequestFrame, 1, 2000, currentNode);
 }
 
 // 从节点下线请求函数
@@ -59,7 +59,7 @@ void logout()
     // 组帧
     Frame LogoutRequestFrame;
     LogoutRequestFrame.initRequestFrame("s", "m", "m", REQUEST_FRAME, NETWORK_LEAVE_REQUEST);
-    sender.sendRequestFrame(LogoutRequestFrame);
+    sender->sendRequestFrame(LogoutRequestFrame);
 }
 
 // 从串口接收数据
