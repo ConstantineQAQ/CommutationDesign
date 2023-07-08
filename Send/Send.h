@@ -9,7 +9,7 @@
 
 using namespace std;
 extern bool Topology[4];
-extern const char* white[20];
+extern const char* white[3];
 class Receive;// 前置声明
 
 class Send {

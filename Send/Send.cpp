@@ -131,9 +131,6 @@ void Send::sendTopologyChangeFrame(Frame &frame)
 
 void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char currentAddress)
 {
-    Frame TopologyChangeFrame;
-    //写一个for循环读取拓扑里为true的个数
-    String TopologyString = "";
     int currentNode; // 当前节点下标 ，也就是发送节点
     int destinationNode; // 目的地址下标
     for (int i = 0; i < retryTimes; i++)
@@ -182,7 +179,9 @@ void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char cur
     default:
         destinationNode = 0;
         break;
-    }   
+    }
+    Frame TopologyChangeFrame; //准备更新拓扑结构的帧
+    String TopologyString = ""; // 准备拓扑帧中的数据
     switch (frame.frameType)
     {
     // 对于请求帧， 如果没有收到ACK，就判断拓扑结构中自己是否在。
@@ -198,7 +197,7 @@ void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char cur
             Serial.println("not in the topology");
         }
         break;
-    // 对于心跳帧，如果没有收到ACK，就删除对应的目的地址
+    // 对于心跳帧，如果没有收到ACK，主节点就删除对应的目的地址
     case HEARTBEAT_FRAME:
         Serial.print("Delete the destination address: ");
         Serial.println(frame.destinationAddress);

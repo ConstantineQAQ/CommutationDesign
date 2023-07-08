@@ -27,7 +27,7 @@ class Receive {
         //处理主节点可服务帧响应
         void processMasterNodeJoinResponse(const String& ReceiveData);
         // 处理主节点可服务帧
-        void processMasterNodeJoinRequest(const String& ReceiveData);
+        void processMasterNodeJoinRequest(const String& ReceiveData, const char currentAddress);
         // 处理数据帧
         String processDataFrame(const String& ReceiveData, const char destinationAddress, const char receiveAddress);
         // 处理告知重传帧
