@@ -138,9 +138,6 @@ bool Receive::receiveACK(const char currentAddress)
             ThirdChar[0] = ReceiveData.charAt(2); // 将ReceiveData的第一个字符复制到firstChar
             ThirdChar[1] = '\0'; // 添加字符串结束标记
             char* DestinationAddress = ThirdChar; // 将ThirdChar的地址赋给DestinationAddress
-            // 判断当前节点是否为接受节点
-            Serial.println(currentAddress);
-            Serial.println(receiverAddress);
             if (currentAddress == receiverAddress)
             {
                 // 再判断是否为目的节点
@@ -252,8 +249,8 @@ bool Receive::receiveACK(const char currentAddress)
                     if (Topology[i] == true)
                     {
                         // 将拓扑变化发给在网的节点
-                        Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], RESPONSE_FRAME, TopologyString);
-                        sender->sendNeedACK(Topologyframe, 3, 1000, 'm');
+                        Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
+                        sender->sendNeedACK(Topologyframe, 3, 2000, 'm');
                     }
                 }
             }
@@ -269,7 +266,7 @@ bool Receive::receiveACK(const char currentAddress)
         // 主节点响应该退网节点
         Frame LeaveResponseframe;
         LeaveResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
-        sender->sendResponseFrame(LeaveResponseframe);
+        sender->sendFrame(LeaveResponseframe);
         // 更新拓扑
         if(strcmp(Sendaddress, "s") == 0){
             Topology[1] = false;
@@ -299,7 +296,7 @@ bool Receive::receiveACK(const char currentAddress)
             if (Topology[i] == true)
             {
                 // 将拓扑变化发给在网的节点
-                Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], RESPONSE_FRAME, TopologyString);
+                Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
                 sender->sendNeedACK(Topologyframe, 3, 1000, 'm');
             }
         }
@@ -309,7 +306,7 @@ bool Receive::receiveACK(const char currentAddress)
     {
         // 中继节点组帧
         char firstChar[2]; // 创建一个只包含一个字符的字符串
-        firstChar[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
+        firstChar[0] = ReceiveData.charAt(2); // 将ReceiveData的第一个字符复制到firstChar
         firstChar[1] = '\0'; // 添加字符串结束标记
         char* Sendaddress = firstChar; // 将firstChar的地址赋给Sendaddress
         Frame HeartbeatResponseframe;
@@ -330,6 +327,7 @@ bool Receive::receiveACK(const char currentAddress)
     // 对于主节点来说，处理自己发送的广播上网告知的响应
     void Receive::processMasterNodeJoinResponse(const String &ReceiveData)
     {
+        Serial.println("a node try to join the network");
         char firstChar[2]; // 创建一个只包含一个字符的字符串
         firstChar[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
         firstChar[1] = '\0'; // 添加字符串结束标记
@@ -338,7 +336,7 @@ bool Receive::receiveACK(const char currentAddress)
         // 判断该节点是否在白名单中
         for(int i = 0; i < 3; i++)
         {
-            if(*Sendaddress == white[i])
+            if(strcmp(Sendaddress, white[i]) == 0)
             {
                 Serial.println(String(Sendaddress) + " node is online");
                 // 主节点响应该入网节点
@@ -346,15 +344,15 @@ bool Receive::receiveACK(const char currentAddress)
                 JoinResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
                 sender->sendFrame(JoinResponseframe);
                 // 更新拓扑
-                if(*Sendaddress == 's')
+                if(strcmp(Sendaddress, "s") == 0)
                 {
                     Topology[1] = true;
                 }
-                else if(*Sendaddress == 'b')
+                else if(strcmp(Sendaddress, "b") == 0)
                 {
                     Topology[2] = true;
                 }
-                else if(*Sendaddress == 't')
+                else if(strcmp(Sendaddress, "t") == 0)
                 {
                     Topology[3] = true;
                 }
@@ -372,8 +370,15 @@ bool Receive::receiveACK(const char currentAddress)
                 }
                 // 组帧
                 Frame Topologyframe;
-                Topologyframe.initTopologyChangeFrame("m","a","a",TOPOLOGY_CHANGE_FRAME,TopologyString);
-                sender->sendFrame(Topologyframe);
+                for (int i = 1; i < 4; i++)
+                {
+                    if (Topology[i] == true)
+                    {
+                        // 将拓扑变化发给在网的节点
+                        Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
+                        sender->sendNeedACK(Topologyframe, 3, 2000, 'm');
+                    }
+                }
             }
         }
     }
@@ -385,6 +390,7 @@ bool Receive::receiveACK(const char currentAddress)
         String currentaddress = String(currentAddress);
         Frame MasterNodeJoinResponseframe;
         MasterNodeJoinResponseframe.initResponseFrame(currentaddress.c_str(),"m","m",RESPONSE_FRAME,MASTERJOIN_RESPONSE);
+        sender->sendFrame(MasterNodeJoinResponseframe);
         sender->sendFrame(MasterNodeJoinResponseframe);
     }
 

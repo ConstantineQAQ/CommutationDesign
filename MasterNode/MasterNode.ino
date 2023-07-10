@@ -93,7 +93,6 @@ void loop(){
                     count++;
                 }
             }
-            Serial.println(count);
             // 如果有中继节点在线
             if (count)
             {
@@ -104,7 +103,7 @@ void loop(){
                     // 组帧发送数据帧
                     Frame DataFrame;
                     DataFrame.initDataFrame("m", "s", "t", DATA_FRAME, data);
-                    sender->sendNeedACK(DataFrame, 3, 1000, currentNode);
+                    sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
                 }
                 else if (count == 1)
                 {
@@ -117,14 +116,14 @@ void loop(){
                         Frame DataFrame;
                         Serial.println(white[0]);
                         DataFrame.initDataFrame("m", "s", "t", DATA_FRAME, data);
-                        sender->sendNeedACK(DataFrame, 3, 1000, currentNode);
+                        sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
                     }
                     else if (Topology[2])
                     {
                         // 组帧发送数据帧
                         Frame DataFrame;
                         DataFrame.initDataFrame("m", "b", "t", DATA_FRAME, data);
-                        sender->sendNeedACK(DataFrame, 3, 1000, currentNode);
+                        sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
                     }
                 }
             }
@@ -134,7 +133,7 @@ void loop(){
                 // 组帧发送数据帧
                 Frame DataFrame;
                 DataFrame.initDataFrame("m", "t", "t", DATA_FRAME, data);
-                sender->sendNeedACK(DataFrame, 3, 1000, currentNode);
+                sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
             }   
         }
          
@@ -148,8 +147,11 @@ void initMasterNode()
     // 初始化主节点可服务帧
     Frame MasterOnlineframe;
     //组帧
-    MasterOnlineframe.initMasterNodeFrame("m","a","a",MASTER_NODE_FRAME);
-    sender->sendNeedACK(MasterOnlineframe, 3, 1000, currentNode);
+    for (int i = 1; i < 4; i++)
+    {
+        MasterOnlineframe.initMasterNodeFrame("m",white[i-1],white[i-1],MASTER_NODE_FRAME);
+        sender->sendNeedACK(MasterOnlineframe, 3, 2000, currentNode);
+    }
 }
 
 String getData()

@@ -217,7 +217,7 @@ void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char cur
             if (Topology[i] == true)
             {
                 TopologyChangeFrame.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
-                sendNeedACK(TopologyChangeFrame, 3, 1000, currentAddress);
+                sendNeedACK(TopologyChangeFrame, 3, 2000, currentAddress);
             }
         }
         break;

@@ -11,13 +11,13 @@ Receive receiver;
 // 创建一个Send类的实例
 extern Send* sender;
 // 当前节点
-char currentNode = 's';
+char currentNode = 'b';
 
 void setup() {
     Serial.begin(9600);
     while (!Serial);
 
-    Serial.println("LoRa SlaveNode");
+    Serial.println("LoRa SlaveNodeB");
 
     if (!LoRa.begin(410E6)) {
         Serial.println("Starting LoRa failed!");
@@ -30,18 +30,14 @@ void loop(){
     data = getData();
     if (data != "")
     {
-        if (Topology[0])
+        // 从节点上线请求
+        if (data == "login"){
+            login();
+        }
+        // 从节点下线请求
+        else if (data == "logout")
         {
-            // 从节点上线请求
-            if (data == "login")
-            {
-                login();
-            }
-            // 从节点下线请求
-            else if (data == "logout")
-            {
-                logout();
-            }
+            logout();
         }
     }
 }
@@ -52,7 +48,7 @@ void login()
     Serial.println("SlaveNode Login");
         // 组帧
     Frame LoginRequestFrame;
-    LoginRequestFrame.initRequestFrame("s", "m", "m", REQUEST_FRAME, NETWORK_JOIN_REQUEST);
+    LoginRequestFrame.initRequestFrame("b", "m", "m", REQUEST_FRAME, NETWORK_JOIN_REQUEST);
     sender->sendNeedACK(LoginRequestFrame, 3, 2000, currentNode);
 }
 
@@ -62,7 +58,7 @@ void logout()
     Serial.println("SlaveNode Logout");
     // 组帧
     Frame LogoutRequestFrame;
-    LogoutRequestFrame.initRequestFrame("s", "m", "m", REQUEST_FRAME, NETWORK_LEAVE_REQUEST);
+    LogoutRequestFrame.initRequestFrame("b", "m", "m", REQUEST_FRAME, NETWORK_LEAVE_REQUEST);
     sender->sendRequestFrame(LogoutRequestFrame);
 }
 
