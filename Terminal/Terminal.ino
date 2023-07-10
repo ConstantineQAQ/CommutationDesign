@@ -77,10 +77,6 @@ void loop()
     data = getSerialData();
     if (data != "")
     {
-        if (data == "read")
-        {
-            read();
-        }
         if (Topology[0])
         {
             // 从节点上线请求
@@ -116,8 +112,8 @@ void sendRequest(RequestFrameData requestType, const String &message)
             Serial.println(message);
             // 组帧
             Frame RequestFrame;
-            RequestFrame.initRequestFrame("t", "s", "m", REQUEST_FRAME, requestType);
-            sender->sendFrame(RequestFrame);
+            RequestFrame.initRequestFrame("t", "b", "m", REQUEST_FRAME, requestType);
+            sender->sendNeedACK(RequestFrame, 3, 2000, currentNode);
         }
         else if (count == 1)
         {
@@ -128,7 +124,7 @@ void sendRequest(RequestFrameData requestType, const String &message)
                 // 组帧
                 Frame RequestFrame;
                 RequestFrame.initRequestFrame("t", "s", "m", REQUEST_FRAME, requestType);
-                sender->sendFrame(RequestFrame);
+                sender->sendNeedACK(RequestFrame, 3, 2000, currentNode);
             }
             else if (Topology[2])
             {
@@ -136,7 +132,7 @@ void sendRequest(RequestFrameData requestType, const String &message)
                 // 组帧
                 Frame RequestFrame;
                 RequestFrame.initRequestFrame("t", "b", "m", REQUEST_FRAME, requestType);
-                sender->sendFrame(RequestFrame);
+                sender->sendNeedACK(RequestFrame, 3, 2000, currentNode);
             }
         }
     }

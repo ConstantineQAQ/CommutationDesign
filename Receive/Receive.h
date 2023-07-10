@@ -11,17 +11,22 @@ class Send;// 前置声明
 class Receive {
     public:
         String processPacket(const char currentAddress);
-        bool receiveACK(const char currentAddress);
+        bool receiveACK(const char currentAddress,const char destinationAddress);
     private:
         Send* sender;
+        // 处理从主节点来的带有转发的帧
+        template <typename T>
+        void processFrameWithForward(const String& ReceiveData, const char currentAddress, 
+                           void (Frame::*initFrameFunc)(const char*, const char*, const char*, FrameType, T), 
+                           T frameType); 
         // 处理请求帧
-        void processRequestFrame(const String& ReceiveData);
+        void processRequestFrame(const String& ReceiveData, const char currentAddress);
         // 处理入网请求
         void processNetworkJoinRequest(const String& ReceiveData);
         // 处理退网请求
         void processNetworkLeaveRequest(const String& ReceiveData);
         // 处理心跳帧
-        void processHeartbeatFrame(const String& ReceiveData);
+        void processHeartbeatFrame(const String& ReceiveData, const char currentAddress);
         // 处理响应帧
         void processResponseFrame(const String& ReceiveData);
         //处理主节点可服务帧响应

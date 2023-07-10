@@ -43,6 +43,10 @@ void loop(){
                 logout();
             }
         }
+        else
+        {
+            Serial.println("MasterNode is offline");
+        }
     }
 }
 
@@ -63,7 +67,7 @@ void logout()
     // 组帧
     Frame LogoutRequestFrame;
     LogoutRequestFrame.initRequestFrame("s", "m", "m", REQUEST_FRAME, NETWORK_LEAVE_REQUEST);
-    sender->sendRequestFrame(LogoutRequestFrame);
+    sender->sendNeedACK(LogoutRequestFrame, 3, 2000, currentNode);
 }
 
 // 从串口接收数据

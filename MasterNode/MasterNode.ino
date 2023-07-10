@@ -24,8 +24,9 @@ Receive receiver;
 // 创建一个Send类的实例
 extern Send* sender;
 unsigned long lastSendTime = 0; // 上次发送心跳帧的时间
-const unsigned long sendInterval = 10000; // 发送心跳帧的间隔，单位是毫秒
+const unsigned long sendInterval = 20000; // 发送心跳帧的间隔，单位是毫秒
 
+void send_to_terminal(FrameType frame_type, String data = "");
 
 void setup() {
     LoRa.setPins(A3);
@@ -42,7 +43,7 @@ void setup() {
 }
 
 void loop(){
-    // 发送数据
+    // 需要发送的数据
     data = getData();
     // 接收数据并处理
     receiver.processPacket(currentNode);
@@ -60,7 +61,21 @@ void loop(){
             {
                 if (Topology[i])
                 {
-                    HeartbeatFrame.initHeartbeatFrame("m", white[i-1], white[i-1], HEARTBEAT_FRAME);
+                    // 发送给中继的心跳帧
+                    if (i == 1)
+                    {
+                        HeartbeatFrame.initHeartbeatFrame("m", white[i-1], white[i-1], HEARTBEAT_FRAME);
+                    }
+                    // 发送给中继B的心跳帧
+                    else if (i == 2)
+                    {
+                        HeartbeatFrame.initHeartbeatFrame("m", Topology[i-1] == 1 ? white[i-2] : white[i-1], white[i-1], HEARTBEAT_FRAME);
+                    }
+                    // 发送给终端的心跳帧
+                    else if (i == 3)
+                    {
+                        send_to_terminal(HEARTBEAT_FRAME);
+                    }
                     sender->sendNeedACK(HeartbeatFrame, 3, 1000, currentNode);
                 }
             }
@@ -84,57 +99,7 @@ void loop(){
             {
                 Serial.print(Topology[i]);
             }
-            // 先判断有几个中继节点在线
-            int count = 0;
-            for (int i = 1; i < 3; i++)
-            {
-                if (Topology[i])
-                {
-                    count++;
-                }
-            }
-            // 如果有中继节点在线
-            if (count)
-            {
-                Serial.println("condition 1");
-                // 两个节点都在线
-                if (count == 2)
-                {
-                    // 组帧发送数据帧
-                    Frame DataFrame;
-                    DataFrame.initDataFrame("m", "s", "t", DATA_FRAME, data);
-                    sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
-                }
-                else if (count == 1)
-                {
-                    Serial.println("condition 2");
-                    // 判断哪一个中继节点在线
-                    if (Topology[1]) // 中继节点"s"在线
-                    {
-                        Serial.println("condition 3");
-                        // 组帧发送数据帧
-                        Frame DataFrame;
-                        Serial.println(white[0]);
-                        DataFrame.initDataFrame("m", "s", "t", DATA_FRAME, data);
-                        sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
-                    }
-                    else if (Topology[2])
-                    {
-                        // 组帧发送数据帧
-                        Frame DataFrame;
-                        DataFrame.initDataFrame("m", "b", "t", DATA_FRAME, data);
-                        sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
-                    }
-                }
-            }
-            // 如果没有一个中继节点在线，则直接发送数据响应给对应节点
-            else
-            {
-                // 组帧发送数据帧
-                Frame DataFrame;
-                DataFrame.initDataFrame("m", "t", "t", DATA_FRAME, data);
-                sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
-            }   
+            send_to_terminal(DATA_FRAME, data);
         }
          
     }
@@ -149,8 +114,21 @@ void initMasterNode()
     //组帧
     for (int i = 1; i < 4; i++)
     {
-        MasterOnlineframe.initMasterNodeFrame("m",white[i-1],white[i-1],MASTER_NODE_FRAME);
+        if (i == 1)
+        {
+            MasterOnlineframe.initMasterNodeFrame("m",white[i-1],white[i-1],MASTER_NODE_FRAME);
+        }
+        else if (i == 2)
+        {
+            MasterOnlineframe.initMasterNodeFrame("m", Topology[i-1] == 1 ? white[i-2] : white[i-1], white[i-1], MASTER_NODE_FRAME);
+        }
+        else if (i == 3)
+        {
+            send_to_terminal(MASTER_NODE_FRAME);
+        }
         sender->sendNeedACK(MasterOnlineframe, 3, 2000, currentNode);
+        // 为了防止帧丢失，每发送一帧就延时一秒
+        delay(1000);
     }
 }
 
@@ -162,4 +140,83 @@ String getData()
         data = Serial.readString();
     }
     return data;
+}
+
+void send_to_terminal(FrameType frame_type, String data = "")
+{
+    // 先判断有几个中继节点在线
+    int count = 0;
+    for (int i = 1; i < 3; i++)
+    {
+        if (Topology[i])
+        {
+            count++;
+        }
+    }
+    // 如果有中继节点在线
+    if (count)
+    {
+        // 两个节点都在线
+        if (count == 2)
+        {
+            // 组帧发送数据帧
+            Frame frame;
+            switch (frame_type)
+            {
+                case DATA_FRAME:
+                    frame.initDataFrame("m", "s", "t", frame_type, data);
+                    break;
+                case HEARTBEAT_FRAME:
+                    frame.initHeartbeatFrame("m", "s", "t", frame_type);
+                    break;
+                case MASTER_NODE_FRAME:
+                    frame.initMasterNodeFrame("m", "s", "t", frame_type);
+                    break;
+                default:
+                    break;
+            }
+            sender->sendNeedACK(frame, 3, 2000, currentNode);
+        }
+        else if (count == 1)
+        {
+            // 判断哪一个中继节点在线
+            Frame frame;
+            switch (frame_type)
+            {
+                case DATA_FRAME:
+                    frame.initDataFrame("m", Topology[1] == 1 ? "s" : "b", "t", frame_type, data);
+                    break;
+                case HEARTBEAT_FRAME:
+                    frame.initHeartbeatFrame("m", Topology[1] == 1 ? "s" : "b", "t", frame_type);
+                    break;
+                case MASTER_NODE_FRAME:
+                    frame.initMasterNodeFrame("m", Topology[1] == 1 ? "s" : "b", "t", frame_type);
+                    break;
+                default:
+                    break;
+            }
+            sender->sendNeedACK(frame, 3, 2000, currentNode);
+        }
+    }
+    // 如果没有一个中继节点在线，则直接发送数据响应给对应节点
+    else
+    {
+        // 组帧发送数据帧
+        Frame frame;
+        switch (frame_type)
+        {
+            case DATA_FRAME:
+                frame.initDataFrame("m", "t", "t", frame_type, data);
+                break;
+            case HEARTBEAT_FRAME:
+                frame.initHeartbeatFrame("m", "t", "t", frame_type);
+                break;
+            case MASTER_NODE_FRAME:
+                frame.initMasterNodeFrame("m", "t", "t", frame_type);
+                break;
+            default:
+                break;
+        }
+        sender->sendNeedACK(frame, 3, 2000, currentNode);
+    }   
 }

@@ -36,6 +36,10 @@ class Send {
         void sendNeedACK(Frame& frame, int retryTimes, int timeout, const char currentAddress);
         // 发送帧
         void sendFrame(Frame& frame);
+        // 处理错误
+        void handle_no_ack(Frame& frame, const char currentAddress);
+        // 获取下标
+        int getAddressIndex(char address);
 };
 
 #endif
