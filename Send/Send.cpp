@@ -172,6 +172,12 @@ void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char cur
             if (receive->receiveACK(currentAddress,frame.destinationAddress[0]))
             {
                 Serial.println("Successfully receive ACK");
+                if (frame.frameType == MASTER_NODE_FRAME)
+                {
+                    Serial.println("in to");
+                    // 如果是主节点可服务帧，就把目的地址加入拓扑结构
+                    processMasterNodeJoinResponse(frame);
+                }
                 return;
             }
         }
@@ -285,3 +291,47 @@ int Send::getAddressIndex(char address) {
             return 0;
     }
 }
+
+// frame : 主节点发送的帧
+void Send::processMasterNodeJoinResponse(Frame &frame)
+    {
+        Serial.println("Received a Node Response");
+        // 主节点收到该节点对于主节点可服务的响应
+        Serial.println(frame.destinationAddress[0] + " node is online");
+            // 更新拓扑
+            if(frame.destinationAddress[0] == 's')
+            {
+                Topology[1] = true;
+            }
+            else if(frame.destinationAddress[0] == 'b')
+            {
+                Topology[2] = true;
+            }
+            else if(frame.destinationAddress[0] == 't')
+            {
+                Topology[3] = true;
+            }
+            // 拓扑变化帧的数据
+            String TopologyString = "";
+            for(int i = 0; i < 4; i++)
+            {
+                if(Topology[i] == true)
+                {
+                    TopologyString += "1";
+                }
+                else{
+                    TopologyString += "0";
+                }
+            }
+            // 组帧
+            Frame Topologyframe;
+            for (int i = 1; i < 4; i++)
+            {
+                if (Topology[i] == true)
+                {
+                    // 将拓扑变化发给在网的节点
+                    Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
+                    sendNeedACK(Topologyframe, 3, 1000, 'm');
+                }
+            }
+    }

@@ -18,6 +18,8 @@ class Send {
         Receive* receive;  // 使用指针而不是对象
         // 从串口中读取的数据
         String val;
+        // 主节点处理主节点可服务帧响应
+        void processMasterNodeJoinResponse(Frame& frame);
         // 发送数据帧
         void sendDataFrame(Frame& frame);
         // 发送请求帧

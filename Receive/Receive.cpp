@@ -398,70 +398,8 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
             }
         }
         sender->sendFrame(transmitACKFrame);
-        if(fifthValue == MASTERJOIN_RESPONSE){
-            processMasterNodeJoinResponse(ReceiveData);
-        }
     }
-
-    // 对于主节点来说，处理自己发送的广播上网告知的响应
-    void Receive::processMasterNodeJoinResponse(const String &ReceiveData)
-    {
-        Serial.println("a node try to join the network");
-        char firstChar[2]; // 创建一个只包含一个字符的字符串
-        firstChar[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
-        firstChar[1] = '\0'; // 添加字符串结束标记
-        char* Sendaddress = firstChar; // 将firstChar的地址赋给Sendaddress
-        // 主节点收到该节点对于主节点可服务的响应
-        // 判断该节点是否在白名单中
-        for(int i = 0; i < 3; i++)
-        {
-            if(strcmp(Sendaddress, white[i]) == 0)
-            {
-                Serial.println(String(Sendaddress) + " node is online");
-                // 主节点响应该入网节点
-                Frame JoinResponseframe;
-                JoinResponseframe.initResponseFrame("m",Sendaddress,Sendaddress,RESPONSE_FRAME,REQUEST_RESPONSE);
-                sender->sendFrame(JoinResponseframe);
-                // 更新拓扑
-                if(strcmp(Sendaddress, "s") == 0)
-                {
-                    Topology[1] = true;
-                }
-                else if(strcmp(Sendaddress, "b") == 0)
-                {
-                    Topology[2] = true;
-                }
-                else if(strcmp(Sendaddress, "t") == 0)
-                {
-                    Topology[3] = true;
-                }
-                // 拓扑变化帧的数据
-                String TopologyString = "";
-                for(int i = 0; i < 4; i++)
-                {
-                    if(Topology[i] == true)
-                    {
-                        TopologyString += "1";
-                    }
-                    else{
-                        TopologyString += "0";
-                    }
-                }
-                // 组帧
-                Frame Topologyframe;
-                for (int i = 1; i < 4; i++)
-                {
-                    if (Topology[i] == true)
-                    {
-                        // 将拓扑变化发给在网的节点
-                        Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
-                        sender->sendNeedACK(Topologyframe, 3, 2000, 'm');
-                    }
-                }
-            }
-        }
-    }
-
+    
     // 四个节点都有可能收到数据帧
     String Receive::processDataFrame(const String &ReceiveData, const char destinationAddress, const char receiveAddress)
     {

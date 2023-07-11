@@ -29,8 +29,6 @@ class Receive {
         void processHeartbeatFrame(const String& ReceiveData, const char currentAddress);
         // 处理响应帧
         void processResponseFrame(const String& ReceiveData);
-        //处理主节点可服务帧响应
-        void processMasterNodeJoinResponse(const String& ReceiveData);
         // 处理主节点可服务帧
         void processMasterNodeJoinRequest(const String& ReceiveData, const char currentAddress);
         // 处理数据帧
