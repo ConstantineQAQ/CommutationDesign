@@ -190,7 +190,7 @@ void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char cur
 void Send::handle_no_ack(Frame &frame, const char currentAddress)
 {
     // 获取目的地址下标
-    int destinationNode = getAddressIndex(frame.destinationAddress);
+    int destinationNode = getAddressIndex(frame.destinationAddress[0]);
     Frame TopologyChangeFrame; //准备更新拓扑结构的帧
     String TopologyString = ""; // 准备拓扑帧中的数据
     switch (frame.frameType)

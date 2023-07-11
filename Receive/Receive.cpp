@@ -155,12 +155,12 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
             // 判断是否为中继节点
             if (currentAddress == 's')
             {
-                Requestframe.initRequestFrame(Send_Address, Destination_Address, Destination_Address, REQUEST_FRAME, fifthValue);
+                Requestframe.initRequestFrame(Send_Address, Destination_Address, Destination_Address, REQUEST_FRAME, fifthValue == 1 ? NETWORK_JOIN_REQUEST : NETWORK_LEAVE_REQUEST);
             }
             // 判断是否为中继节点B
             else if (currentAddress == 'b')
             {
-                Requestframe.initRequestFrame(Send_Address, Topology[1] == 1 ? "s" : Destination_Address, Destination_Address, REQUEST_FRAME, fifthValue);
+                Requestframe.initRequestFrame(Send_Address, Topology[1] == 1 ? "s" : Destination_Address, Destination_Address, REQUEST_FRAME, fifthValue == 1 ? NETWORK_JOIN_REQUEST : NETWORK_LEAVE_REQUEST);
             }
             sender->sendNeedACK(Requestframe, 3, 1000, currentAddress);
         }
@@ -370,6 +370,22 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
         char* Destination_Address = destnition_address;
         char fifthChar = ReceiveData.charAt(4); // 获取第五个字符
         int fifthValue = fifthChar - '0'; // 将字符转换为整数
+        ResponseFrameData responseFrameData;
+        switch (fifthValue)
+        {
+            case 1:
+                responseFrameData = REQUEST_RESPONSE;
+                break;
+            case 2:
+                responseFrameData = HEARTBEAT_RESPONSE;
+                break;
+            case 3:
+                responseFrameData = DATA_RESPONSE;
+                break;
+            case 4:
+                responseFrameData = MASTERJOIN_RESPONSE;
+                break;
+        }
         // 转发ACK
         Serial.println(String(Receive_Address) + " ReceiveACK from " + String(Send_Address) + " to " + String(Destination_Address));
         Frame transmitACKFrame;
@@ -378,11 +394,11 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
         {
             if (R_destinationAddress == 'm')
             {
-                transmitACKFrame.initResponseFrame(Send_Address, Destination_Address, Destination_Address, RESPONSE_FRAME, fifthValue);
+                transmitACKFrame.initResponseFrame(Send_Address, Destination_Address, Destination_Address, RESPONSE_FRAME, responseFrameData);
             }
             else if (R_destinationAddress == 't')
             {
-                transmitACKFrame.initResponseFrame(Send_Address, Topology[2] == 1 ? "b" : Destination_Address, Destination_Address, RESPONSE_FRAME, fifthValue);
+                transmitACKFrame.initResponseFrame(Send_Address, Topology[2] == 1 ? "b" : Destination_Address, Destination_Address, RESPONSE_FRAME, responseFrameData);
             }
         }
         // 如果是b与上相反
@@ -390,11 +406,11 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
         {
             if (R_destinationAddress == 't')
             {
-                transmitACKFrame.initResponseFrame(Send_Address, Destination_Address, Destination_Address, RESPONSE_FRAME, fifthValue);
+                transmitACKFrame.initResponseFrame(Send_Address, Destination_Address, Destination_Address, RESPONSE_FRAME, responseFrameData);
             }
             else if (R_destinationAddress == 'm')
             {
-                transmitACKFrame.initResponseFrame(Send_Address, Topology[1] == 1 ? "s" : Destination_Address, Destination_Address, RESPONSE_FRAME, fifthValue);
+                transmitACKFrame.initResponseFrame(Send_Address, Topology[1] == 1 ? "s" : Destination_Address, Destination_Address, RESPONSE_FRAME, responseFrameData);
             }
         }
         sender->sendFrame(transmitACKFrame);
@@ -439,7 +455,7 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
                 // 组帧
                 Frame Dataframe;
                 Dataframe.initDataFrame(ReceiveAddress, "b", DestinationAddress, DATA_FRAME, unzipData);
-                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress);
+                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress[0]);
             }
             else if (receiveAddress == 'b')
             {
@@ -447,7 +463,7 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
                 // 组帧
                 Frame Dataframe;
                 Dataframe.initDataFrame(ReceiveAddress, "t", DestinationAddress, DATA_FRAME, unzipData);
-                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress);
+                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress[0]);
             }
             else if (count == 1)
             {
@@ -455,7 +471,7 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
                 // 组帧
                 Frame Dataframe;
                 Dataframe.initDataFrame(ReceiveAddress, "t", DestinationAddress, DATA_FRAME, unzipData);
-                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress);
+                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress[0]);
             }
         return "";
     }
