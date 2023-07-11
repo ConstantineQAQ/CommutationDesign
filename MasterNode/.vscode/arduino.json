@@ -1,5 +1,5 @@
 {
-    "port": "/dev/tty.usbmodem1301",
+    "port": "/dev/tty.usbmodem1101",
     "board": "arduino:avr:uno",
     "programmer": "avrispmkii",
     "sketch": "MasterNode.ino"

@@ -24,7 +24,7 @@ Receive receiver;
 // 创建一个Send类的实例
 extern Send* sender;
 unsigned long lastSendTime = 0; // 上次发送心跳帧的时间
-const unsigned long sendInterval = 20000; // 发送心跳帧的间隔，单位是毫秒
+const unsigned long sendInterval = 10000; // 发送心跳帧的间隔，单位是毫秒
 
 void send_to_terminal(FrameType frame_type, String data = "");
 
@@ -46,7 +46,10 @@ void loop(){
     // 需要发送的数据
     data = getData();
     // 接收数据并处理
-    receiver.processPacket(currentNode);
+    if (Topology[0])
+    {
+        receiver.processPacket(currentNode);
+    }
     // 主节点一旦上线，就开始不断向拓扑内的所有节点发送心跳帧
     // 使用非阻塞的方式发送心跳帧
     if (Topology[0])
@@ -116,17 +119,21 @@ void initMasterNode()
     {
         if (i == 1)
         {
+            Serial.println("send to relay S");
             MasterOnlineframe.initMasterNodeFrame("m",white[i-1],white[i-1],MASTER_NODE_FRAME);
+            sender->sendNeedACK(MasterOnlineframe, 3, 1000, currentNode);
         }
         else if (i == 2)
         {
+            Serial.println("send to relay B");
             MasterOnlineframe.initMasterNodeFrame("m", Topology[i-1] == 1 ? white[i-2] : white[i-1], white[i-1], MASTER_NODE_FRAME);
+            sender->sendNeedACK(MasterOnlineframe, 3, 1000, currentNode);
         }
         else if (i == 3)
         {
+            Serial.println("send to terminal");
             send_to_terminal(MASTER_NODE_FRAME);
         }
-        sender->sendNeedACK(MasterOnlineframe, 3, 2000, currentNode);
         // 为了防止帧丢失，每发送一帧就延时一秒
         delay(1000);
     }
@@ -175,7 +182,7 @@ void send_to_terminal(FrameType frame_type, String data = "")
                 default:
                     break;
             }
-            sender->sendNeedACK(frame, 3, 2000, currentNode);
+            sender->sendNeedACK(frame, 3, 1000, currentNode);
         }
         else if (count == 1)
         {
@@ -195,7 +202,7 @@ void send_to_terminal(FrameType frame_type, String data = "")
                 default:
                     break;
             }
-            sender->sendNeedACK(frame, 3, 2000, currentNode);
+            sender->sendNeedACK(frame, 3, 1000, currentNode);
         }
     }
     // 如果没有一个中继节点在线，则直接发送数据响应给对应节点
@@ -217,6 +224,6 @@ void send_to_terminal(FrameType frame_type, String data = "")
             default:
                 break;
         }
-        sender->sendNeedACK(frame, 3, 2000, currentNode);
+        sender->sendNeedACK(frame, 3, 1000, currentNode);
     }   
 }
