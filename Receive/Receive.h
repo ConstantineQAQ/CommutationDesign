@@ -32,7 +32,7 @@ class Receive {
         // 处理主节点可服务帧
         void processMasterNodeJoinRequest(const String& ReceiveData, const char currentAddress);
         // 处理数据帧
-        String processDataFrame(const String& ReceiveData, const char destinationAddress, const char receiveAddress);
+        String processDataFrame(const String& ReceiveData, const char destinationAddress, const char receiveAddress, const char currentAddress);
         // 处理告知重传帧
         void processRetransmissionFrame(const String& ReceiveData);
         // 处理拓扑变化帧

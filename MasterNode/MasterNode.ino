@@ -17,6 +17,7 @@ using namespace std;
 extern const char* white[3];
 extern bool Topology[4];
 String data;
+String receiveData;
 char currentNode = 'm';
 
 // 创建一个Receive类的实例
@@ -24,7 +25,7 @@ Receive receiver;
 // 创建一个Send类的实例
 extern Send* sender;
 unsigned long lastSendTime = 0; // 上次发送心跳帧的时间
-const unsigned long sendInterval = 10000; // 发送心跳帧的间隔，单位是毫秒
+const unsigned long sendInterval = 30000; // 发送心跳帧的间隔，单位是毫秒
 
 void send_to_terminal(FrameType frame_type, String data = "");
 
@@ -48,7 +49,7 @@ void loop(){
     // 接收数据并处理
     if (Topology[0])
     {
-        receiver.processPacket(currentNode);
+        receiveData = receiver.processPacket(currentNode);
     }
     // 主节点一旦上线，就开始不断向拓扑内的所有节点发送心跳帧
     // 使用非阻塞的方式发送心跳帧
@@ -68,18 +69,19 @@ void loop(){
                     if (i == 1)
                     {
                         HeartbeatFrame.initHeartbeatFrame("m", white[i-1], white[i-1], HEARTBEAT_FRAME);
+                        sender->sendNeedACK(HeartbeatFrame, 3, 1000, currentNode);
                     }
                     // 发送给中继B的心跳帧
                     else if (i == 2)
                     {
                         HeartbeatFrame.initHeartbeatFrame("m", Topology[i-1] == 1 ? white[i-2] : white[i-1], white[i-1], HEARTBEAT_FRAME);
+                        sender->sendNeedACK(HeartbeatFrame, 3, 1000, currentNode);
                     }
                     // 发送给终端的心跳帧
                     else if (i == 3)
                     {
                         send_to_terminal(HEARTBEAT_FRAME);
                     }
-                    sender->sendNeedACK(HeartbeatFrame, 3, 1000, currentNode);
                 }
             }
             // 更新上次发送心跳帧的时间
@@ -96,12 +98,6 @@ void loop(){
         // 主节点上线
         if (Topology[0])
         {
-            // 要发送数据前先打印拓扑
-            Serial.println("Topology: ");
-            for(int i = 0; i < 4; i++)
-            {
-                Serial.print(Topology[i]);
-            }
             send_to_terminal(DATA_FRAME, data);
         }
          

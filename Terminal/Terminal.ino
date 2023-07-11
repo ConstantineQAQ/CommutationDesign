@@ -77,8 +77,6 @@ void loop()
     data = getSerialData();
     if (data != "")
     {
-        if (Topology[0])
-        {
             // 从节点上线请求
             if (data == "login"){
                 login();
@@ -88,7 +86,6 @@ void loop()
             {
                 logout();
             }
-        }
     }
 }
 

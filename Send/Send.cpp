@@ -161,6 +161,7 @@ void Send::sendTopologyChangeFrame(Frame &frame)
 
 void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char currentAddress)
 {
+    bool isACK = false;
     for (int i = 0; i < retryTimes; i++)
     {
         // 发送帧
@@ -172,9 +173,9 @@ void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char cur
             if (receive->receiveACK(currentAddress,frame.destinationAddress[0]))
             {
                 Serial.println("Successfully receive ACK");
+                isACK = true;
                 if (frame.frameType == MASTER_NODE_FRAME)
                 {
-                    Serial.println("in to");
                     // 如果是主节点可服务帧，就把目的地址加入拓扑结构
                     processMasterNodeJoinResponse(frame);
                 }
@@ -182,9 +183,11 @@ void Send::sendNeedACK(Frame &frame, int retryTimes, int timeout, const char cur
             }
         }
     }
-    // 如果没有收到确认消息，打印一个错误消息
-    Serial.println("Did not receive ACK");
-    handle_no_ack(frame, currentAddress);
+    if(!isACK){
+        // 如果没有收到确认消息，打印一个错误消息
+        Serial.println("Did not receive ACK");
+        handle_no_ack(frame, currentAddress);
+    }
 }
 
 void Send::handle_no_ack(Frame &frame, const char currentAddress)
@@ -296,8 +299,6 @@ int Send::getAddressIndex(char address) {
 void Send::processMasterNodeJoinResponse(Frame &frame)
     {
         Serial.println("Received a Node Response");
-        // 主节点收到该节点对于主节点可服务的响应
-        Serial.println(frame.destinationAddress[0] + " node is online");
             // 更新拓扑
             if(frame.destinationAddress[0] == 's')
             {
@@ -331,7 +332,8 @@ void Send::processMasterNodeJoinResponse(Frame &frame)
                 {
                     // 将拓扑变化发给在网的节点
                     Topologyframe.initTopologyChangeFrame("m", white[i-1], white[i-1], TOPOLOGY_CHANGE_FRAME, TopologyString);
-                    sendNeedACK(Topologyframe, 3, 1000, 'm');
+                    sendFrame(Topologyframe);
+                    delay(500);
                 }
             }
     }

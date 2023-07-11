@@ -53,7 +53,7 @@ String Receive::processPacket(const char currentAddress)
                     case DATA_FRAME:
                         // 判断是否为数据帧
                         Serial.println("ReceiveDataFrame");
-                        SendData = processDataFrame(ReceiveData, destinationAddress, receiverAddress);
+                        SendData = processDataFrame(ReceiveData, destinationAddress, receiverAddress, currentAddress);
                         Serial.println("***************************");
                         break;
                     case RETRANSMISSION_FRAME:
@@ -279,7 +279,35 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
         char destination_address[2];
         destination_address[0] = ReceiveData.charAt(2); 
         destination_address[1] = '\0'; 
-        char* Destination_Address = destination_address; 
+        char* Destination_Address = destination_address;
+        FrameType frametype;
+        // 判断帧类型
+        switch (ReceiveData.charAt(3))
+        {
+            case '1':
+                frametype = REQUEST_FRAME;
+                break;
+            case '2':
+                frametype = HEARTBEAT_FRAME;
+                break;
+            case '3':
+                frametype = RESPONSE_FRAME;
+                break;
+            case '4':
+                frametype = MASTER_NODE_FRAME;
+                break;
+            case '5':
+                frametype = DATA_FRAME;
+                break;
+            case '6':
+                frametype = RETRANSMISSION_FRAME;
+                break;
+            case '7':
+                frametype = TOPOLOGY_CHANGE_FRAME;
+                break;
+            default:
+                break;
+        }
         // 判断是否是目的节点
         char destinationAddress = ReceiveData.charAt(2); // 获取目的地址
         if (destinationAddress == currentAddress) 
@@ -325,13 +353,13 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
             // 如果是中继B节点，就直接转发给终端
             if (currentAddress == 'b')
             {
-                (transmitFrame.*initFrameFunc)(Send_Address, Destination_Address, Destination_Address, RESPONSE_FRAME, responseType);
+                (transmitFrame.*initFrameFunc)(Send_Address, Destination_Address, Destination_Address, frametype, responseType);
             }
             // 如果是中继S节点，就看中继B节点是不是在线
             else if (currentAddress == 's')
             {
                 // 如果中继B节点在线，就转发给中继B节点
-                (transmitFrame.*initFrameFunc)(Send_Address, Topology[2] == 1 ? "b" : Destination_Address, Destination_Address, RESPONSE_FRAME, responseType);
+                (transmitFrame.*initFrameFunc)(Send_Address, Topology[2] == 1 ? "b" : Destination_Address, Destination_Address, frametype, responseType);
             }
             sender->sendFrame(transmitFrame);
         }
@@ -357,7 +385,7 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
         char FrameType = ReceiveData.charAt(3); // 获取帧类型
         int FrameTypeInt = FrameType - '0';
         char send_address[2]; // 创建一个只包含一个字符的字符串
-        send_address[0] = ReceiveData.charAt(1); // 将ReceiveData的第一个字符复制到firstChar
+        send_address[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
         send_address[1] = '\0'; // 添加字符串结束标记
         char* Send_Address = send_address; // 将firstChar的地址赋给Sendaddress
         char receive_address[2]; 
@@ -417,64 +445,165 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
     }
     
     // 四个节点都有可能收到数据帧
-    String Receive::processDataFrame(const String &ReceiveData, const char destinationAddress, const char receiveAddress)
+    String Receive::processDataFrame(const String &ReceiveData, const char destinationAddress, const char receiveAddress, const char currentAddress)
     {
-        char SecondChar[2]; // 创建一个只包含一个字符的字符串
-        SecondChar[0] = ReceiveData.charAt(1); // 将ReceiveData的第一个字符复制到firstChar
-        SecondChar[1] = '\0'; // 添加字符串结束标记
-        char* ReceiveAddress = SecondChar; // 将firstChar的地址赋给Sendaddress
-        char ThirdChar[2]; // 创建一个只包含一个字符的字符串
-        ThirdChar[0] = ReceiveData.charAt(2); // 将ReceiveData的第一个字符复制到firstChar
-        ThirdChar[1] = '\0'; // 添加字符串结束标记
-        char* DestinationAddress = ThirdChar; // 将firstChar的地址赋给Receiveaddress
         // 解包数据帧中的信息
         String unzipData = ReceiveData.substring(4, ReceiveData.length());
         Serial.println("unzipData: " + unzipData);
-        // 先判断有几个中继节点在线
-        int count = 0;
-        for (int i = 1; i < 3; i++)
+        // 获取发送地址
+        char send_address[2]; // 创建一个只包含一个字符的字符串
+        send_address[0] = ReceiveData.charAt(0); // 将ReceiveData的第一个字符复制到firstChar
+        send_address[1] = '\0'; // 添加字符串结束标记
+        char* Send_Address = send_address; // 将firstChar的地址赋给Sendaddress
+        // 获取接受地址
+        char receive_address[2];
+        receive_address[0] = ReceiveData.charAt(1);
+        receive_address[1] = '\0';
+        char* Receive_Address = receive_address;
+        // 获取目的地址
+        char destination_address[2];
+        destination_address[0] = ReceiveData.charAt(2); 
+        destination_address[1] = '\0'; 
+        char* Destination_Address = destination_address;
+        FrameType frametype;
+        // 判断帧类型
+        switch (ReceiveData.charAt(3))
         {
-            if (Topology[i])
-            {
-                count++;
-            }
+            case '1':
+                frametype = REQUEST_FRAME;
+                break;
+            case '2':
+                frametype = HEARTBEAT_FRAME;
+                break;
+            case '3':
+                frametype = RESPONSE_FRAME;
+                break;
+            case '4':
+                frametype = MASTER_NODE_FRAME;
+                break;
+            case '5':
+                frametype = DATA_FRAME;
+                break;
+            case '6':
+                frametype = RETRANSMISSION_FRAME;
+                break;
+            case '7':
+                frametype = TOPOLOGY_CHANGE_FRAME;
+                break;
+            default:
+                break;
         }
-        Serial.print("active Node is");
-        Serial.println(count);
-        // 判断目的地址是否为自己
-        if (destinationAddress == receiveAddress)
+        // 判断是否是目的节点
+        if (destinationAddress == currentAddress) 
         {
-            return unzipData;
+            if (send_address[0] == 'm')
+            {
+                // 目的节点响应该帧
+                Frame ResponseFrame;
+                // 如果是中继S节点，就直接响应主节点
+                if (currentAddress == 's')
+                {
+                    ResponseFrame.initResponseFrame(Destination_Address, "m", "m", RESPONSE_FRAME, DATA_RESPONSE);
+                }
+                // 如果是中继B节点，就看中继S节点是不是在线
+                else if (currentAddress == 'b')
+                {
+                    ResponseFrame.initResponseFrame(Destination_Address, Topology[1] == 1 ? "s" : "m", "m", RESPONSE_FRAME, DATA_RESPONSE);
+                }
+                // 如果是终端的情况
+                else if (currentAddress == 't')
+                {
+                    // 先看中继B节点是不是在线
+                    if (Topology[2] == 1)
+                    {
+                        ResponseFrame.initResponseFrame(Destination_Address, "b", "m", RESPONSE_FRAME, DATA_RESPONSE);
+                    }
+                    // 再看中继S节点是不是在线  
+                    else if (Topology[1] == 1)
+                    {
+                        ResponseFrame.initResponseFrame(Destination_Address, "s", "m", RESPONSE_FRAME, DATA_RESPONSE);
+                    }
+                    // 如果都不在线，就直接响应主节点
+                    else
+                    {
+                        ResponseFrame.initResponseFrame(Destination_Address, "m", "m", RESPONSE_FRAME, DATA_RESPONSE);
+                    }
+                }
+                sender->sendFrame(ResponseFrame);
+                return unzipData;
+            }
+            else if (send_address[0] == 't')
+            {
+                // 目的节点响应该帧
+                Frame ResponseFrame;
+                // 如果是中继B节点，就直接响应终端
+                if (currentAddress == 'b')
+                {
+                    ResponseFrame.initResponseFrame(Destination_Address, "t", "t", RESPONSE_FRAME, DATA_RESPONSE);
+                }
+                // 如果是中继S节点，就看中继B节点是不是在线
+                else if (currentAddress == 's')
+                {
+                    ResponseFrame.initResponseFrame(Destination_Address, Topology[2] == 1 ? "b" : "t", "t", RESPONSE_FRAME, DATA_RESPONSE);
+                }
+                // 如果是主节点的情况
+                else if (currentAddress == 'm')
+                {
+                    // 先看中继S节点是不是在线
+                    if (Topology[1] == 1)
+                    {
+                        ResponseFrame.initResponseFrame(Destination_Address, "s", "t", RESPONSE_FRAME, DATA_RESPONSE);
+                    }
+                    // 再看中继B节点是不是在线  
+                    else if (Topology[1] == 1)
+                    {
+                        ResponseFrame.initResponseFrame(Destination_Address, "b", "t", RESPONSE_FRAME, DATA_RESPONSE);
+                    }
+                    // 如果都不在线，就直接响应终端
+                    else
+                    {
+                        ResponseFrame.initResponseFrame(Destination_Address, "t", "t", RESPONSE_FRAME, DATA_RESPONSE);
+                    }
+                }
+                sender->sendFrame(ResponseFrame);
+                return unzipData;
+            }
         }
         else
-        {   // 目的地址不是自己就转发
-            // 如果有兄弟中继节点在线
-            if (count == 2 && receiveAddress == 's')
+        {
+            // 如果不是目的节点，就转发
+            Frame transmitFrame;
+            if (send_address[0] == 'm')
             {
-                Serial.println("condition 1");
-                // 组帧
-                Frame Dataframe;
-                Dataframe.initDataFrame(ReceiveAddress, "b", DestinationAddress, DATA_FRAME, unzipData);
-                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress[0]);
+                // 如果是中继B节点，就直接转发给终端
+                if (currentAddress == 'b')
+                {
+                    transmitFrame.initDataFrame(Send_Address, Destination_Address, Destination_Address, frametype, unzipData);
+                }
+                // 如果是中继S节点，就看中继B节点是不是在线
+                else if (currentAddress == 's')
+                {
+                    // 如果中继B节点在线，就转发给中继B节点
+                    transmitFrame.initDataFrame(Send_Address, Topology[2] == 1 ? "b" : Destination_Address, Destination_Address, frametype, unzipData);
+                }
             }
-            else if (receiveAddress == 'b')
+            else if(send_address[0] == 't')
             {
-                Serial.println("condition 2");
-                // 组帧
-                Frame Dataframe;
-                Dataframe.initDataFrame(ReceiveAddress, "t", DestinationAddress, DATA_FRAME, unzipData);
-                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress[0]);
+                // 如果是中继S节点,就直接转发给终端
+                if (currentAddress == 's')
+                {
+                    transmitFrame.initDataFrame(Send_Address, Destination_Address, Destination_Address, frametype, unzipData);
+                }
+                // 如果是中继B节点，就看中继S节点是不是在线
+                else if (currentAddress == 'b')
+                {
+                    // 如果中继S节点在线，就转发给中继S节点
+                    transmitFrame.initDataFrame(Send_Address, Topology[1] == 1 ? "s" : Destination_Address, Destination_Address, frametype, unzipData);
+                }
             }
-            else if (count == 1)
-            {
-                Serial.println("condition 3");
-                // 组帧
-                Frame Dataframe;
-                Dataframe.initDataFrame(ReceiveAddress, "t", DestinationAddress, DATA_FRAME, unzipData);
-                sender->sendNeedACK(Dataframe, 3, 1000, ReceiveAddress[0]);
-            }
-        return "";
-    }
+            sender->sendFrame(transmitFrame);
+            return "";
+        }
     }
 
     void Receive::processRetransmissionFrame(const String &ReceiveData)
@@ -506,11 +635,12 @@ bool Receive::receiveACK(const char currentAddress,const char destinationAddress
         TopologyResponseframe.initResponseFrame(Sendaddress,"m","m",RESPONSE_FRAME, DATA_RESPONSE);
         sender->sendFrame(TopologyResponseframe);
         // 打印拓扑
-        Serial.println("Topology: ");
+        Serial.print("Topology: ");
         for(int i = 0; i < 4; i++)
         {
             Serial.print(Topology[i]);
         }
+        Serial.println();
     }
 
 // 实例化模版
