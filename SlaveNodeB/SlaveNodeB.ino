@@ -41,10 +41,6 @@ void loop(){
             logout();
         }
     }
-    else
-    {
-        Serial.println("MasterNode is offline");
-    }
 }
 
 // 从节点上网请求函数
