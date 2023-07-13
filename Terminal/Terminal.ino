@@ -52,7 +52,18 @@ void loop()
             delay(500);
             // 组帧
             Frame RequestResponseFrame;
-            RequestResponseFrame.initResponseFrame("t", "s", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            if (Topology[2])
+            {
+                RequestResponseFrame.initResponseFrame("t", "b", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            }
+            else if (Topology[1])
+            {
+                RequestResponseFrame.initResponseFrame("t", "s", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            }
+            else
+            {
+                RequestResponseFrame.initResponseFrame("t", "m", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            }
             sender->sendFrame(RequestResponseFrame);
             ReceivedData = ""; // 清空接收到的数据
         }
@@ -61,14 +72,38 @@ void loop()
             Serial.println("Received read Request");
             float h = dht.readHumidity();
             float t = dht.readTemperature();
+            Serial.println(t);
+            Serial.println("Humidity: " + String(h) + "% Temperature: " + String(t) + "C");
             // 组帧
             Frame RequestResponseFrame;
-            RequestResponseFrame.initResponseFrame("t", "s", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            if (Topology[2])
+            {
+                RequestResponseFrame.initResponseFrame("t", "b", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            }
+            else if (Topology[1])
+            {
+                RequestResponseFrame.initResponseFrame("t", "s", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            }
+            else
+            {
+                RequestResponseFrame.initResponseFrame("t", "m", "m", RESPONSE_FRAME, DATA_RESPONSE);
+            }
             sender->sendFrame(RequestResponseFrame);
             ReceivedData = ""; // 清空接收到的数据
             // 组数据帧
             Frame DataFrame;
-            DataFrame.initDataFrame("t", "s", "m", DATA_FRAME, "h:" + String(h) + "t:" + String(t));
+            if (Topology[2])
+            {
+                DataFrame.initDataFrame("t", "b", "m", DATA_FRAME, "t:" + String(t));
+            }
+            else if (Topology[1])
+            {
+                DataFrame.initDataFrame("t", "s", "m", DATA_FRAME, "t:" + String(t));
+            }
+            else
+            {
+                DataFrame.initDataFrame("t", "m", "m", DATA_FRAME, "t:" + String(t));
+            }
             sender->sendNeedACK(DataFrame, 3, 2000, currentNode);
         }
     }
