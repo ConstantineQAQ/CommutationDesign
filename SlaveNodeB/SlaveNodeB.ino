@@ -30,23 +30,20 @@ void loop(){
     data = getData();
     if (data != "")
     {
-        if (Topology[0])
+        // 从节点B上线请求
+        if (data == "login")
         {
-            // 从节点B上线请求
-            if (data == "login")
-            {
-                login();
-            }
-            // 从节点B下线请求
-            else if (data == "logout")
-            {
-                logout();
-            }
+            login();
         }
-        else
+        // 从节点B下线请求
+        else if (data == "logout")
         {
-            Serial.println("MasterNode is offline");
+            logout();
         }
+    }
+    else
+    {
+        Serial.println("MasterNode is offline");
     }
 }
 
