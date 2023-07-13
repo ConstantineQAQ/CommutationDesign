@@ -22,7 +22,7 @@
 - Receive:接收Utils
 ### 运行方法
 - 1.压缩包解压后，将FrameStructure、Send、Receive作为模块导入Arduino IDE
-- 2.将MasterNode、SlaveNode、TerminalNode分别烧录至三块不同的Arduino板
+- 2.将MasterNode、SlaveNode、SlaveNodeB、TerminalNode分别烧录至三块不同的Arduino板
 - TODO
 ### 思路介绍
 ```
