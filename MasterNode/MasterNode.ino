@@ -51,6 +51,14 @@ void loop(){
     {
         receiveData = receiver.processPacket(currentNode);
     }
+    // 如果只有主节点在线
+    if (Topology[0] && !Topology[1] && !Topology[2] && !Topology[3])
+    {
+        Serial.print("Topology:");
+        Serial.print("1000");
+        Serial.println();
+        Serial.println("***************************");
+    }
     // 主节点一旦上线，就开始不断向拓扑内的所有节点发送心跳帧
     // 使用非阻塞的方式发送心跳帧
     if (Topology[0])
